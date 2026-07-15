@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>GoShow — showtimes</title>
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    .date-strip {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      padding: 4px 0 28px;
+    }
+    .date-chip {
+      flex: 0 0 auto;
+      font-family: var(--mono);
+      font-size: 0.8rem;
+      text-align: center;
+      background: var(--stage-raised);
+      border: 1px solid var(--stage-line);
+      border-radius: 10px;
+      padding: 10px 16px;
+      cursor: pointer;
+    }
+    .date-chip.active { background: var(--marquee); color: #1a1408; border-color: var(--marquee); }
+  </style>
+</head>
+<body>
+
+  <main class="gs-container">
+    <h2 id="movie-title">Showtimes</h2>
+    <div class="date-strip" id="date-strip"></div>
+    <div id="alert-slot"></div>
+    <div id="theatre-list"></div>
+  </main>
+
+  <script src="js/api.js"></script>
+  <script src="js/navbar.js"></script>
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    const movieId = params.get("movie_id");
+    const city = localStorage.getItem("gs_city");
+    let selectedDate = null;
+
+    function buildDateStrip() {
+      const strip = document.getElementById("date-strip");
+      const days = [];
+      for (let i = 0; i < 15; i++) {
+        const d = new Date();
+        d.setDate(d.getDate() + i);
+        days.push(d);
+      }
+      selectedDate = formatDate(days[0]);
+
+      strip.innerHTML = days.map(d => {
+        const iso = formatDate(d);
+        const label = d.toLocaleDateString("en-US", { weekday: "short" });
+        const num = d.getDate();
+        return `<div class="date-chip ${iso === selectedDate ? "active" : ""}" data-date="${iso}">${label}<br>${num}</div>`;
+      }).join("");
+
+      strip.querySelectorAll(".date-chip").forEach(chip => {
+        chip.addEventListener("click", () => {
+          strip.querySelectorAll(".date-chip").forEach(c => c.classList.remove("active"));
+          chip.classList.add("active");
+          selectedDate = chip.dataset.date;
+          loadShows();
+        });
+      });
+    }
+
+    function formatDate(d) {
+      return d.toISOString().slice(0, 10);
+    }
+
+    async function loadShows() {
+      if (!movieId || !city) {
+        window.location.href = "index.html";
+        return;
+      }
+
+      const list = document.getElementById("theatre-list");
+      list.innerHTML = `<p>Loading showtimes…</p>`;
+
+      try {
+        const theatres = await apiFetch(
+          `/movies/${movieId}/shows?city=${encodeURIComponent(city)}&date=${selectedDate}`
+        );
+
+        if (!theatres || theatres.length === 0) {
+          list.innerHTML = `<p>No shows found for this date.</p>`;
+          return;
+        }
+
+        list.innerHTML = theatres.map(t => `
+          <div class="theatre-block">
+            <h3>${t.TheatreName}</h3>
+            <p class="address">${t.TheatreArea || ""}${t.TheatreAddress ? " · " + t.TheatreAddress : ""}</p>
+            <div class="showtime-row">
+              ${t.Shows.map(s => `
+                <div class="showtime-chip" onclick="goToSeatMap('${s.ShowID}')">
+                  ${formatTime(s.StartTime)}
+                </div>
+              `).join("")}
+            </div>
+          </div>
+        `).join("");
+      } catch (err) {
+        document.getElementById("alert-slot").innerHTML =
+          `<div class="gs-alert error">${err.message}</div>`;
+      }
+    }
+
+    function formatTime(iso) {
+      const d = new Date(iso);
+      return d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+    }
+
+    function goToSeatMap(showId) {
+      window.location.href = `seatmap.html?show_id=${showId}`;
+    }
+
+    buildDateStrip();
+    loadShows();
+  </script>
+</body>
+</html>

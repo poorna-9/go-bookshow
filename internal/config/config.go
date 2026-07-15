@@ -21,6 +21,7 @@ type Config struct {
 	RazorpayKeyID         string
 	RazorpayKeySecret     string
 	RazorpayWebhookSecret string
+	JWTSecret             string
 }
 
 func getEnv(key, fallback string) string {
@@ -49,6 +50,7 @@ func Load() *Config {
 		RazorpayKeyID:         getEnv("RAZORPAY_KEY_ID", ""),
 		RazorpayKeySecret:     getEnv("RAZORPAY_KEY_SECRET", ""),
 		RazorpayWebhookSecret: getEnv("RAZORPAY_WEBHOOK_SECRET", ""),
+		JWTSecret:             getEnv("JWTSECRET", ""),
 	}
 
 }

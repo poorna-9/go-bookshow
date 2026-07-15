@@ -66,6 +66,11 @@ func main() {
 	bookingService := services.NewBookingService(bookingRepo, cfg.RazorpayKeyID)
 	bookingHandler := handlers.NewBookingHandler(bookingService)
 
+	// Auth
+	userRepo := repositories.NewUserRepository(db)
+	authService := services.NewAuthService(userRepo, cfg.JWTSecret)
+	authHandler := handlers.NewAuthHandler(authService)
+
 	router := gin.Default()
 
 	routes.RegisterRoutes(router, &routes.Handlers{
@@ -75,6 +80,7 @@ func main() {
 		Movie:   movieHandler,
 		Show:    showHandler,
 		Booking: bookingHandler,
+		Auth:    authHandler,
 	})
 
 	log.Printf("starting server on :%s", cfg.AppPort)

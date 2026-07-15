@@ -320,3 +320,12 @@ func (r *BookingRepository) VerifyWebhookSignature(payload []byte, signature str
 	expected := hex.EncodeToString(h.Sum(nil))
 	return hmac.Equal([]byte(expected), []byte(signature))
 }
+
+func (r *BookingRepository) GetPaymentStatus(orderID string) (*models.Payment, error) {
+	var payment models.Payment
+	err := r.DB.Where("razorpay_order_id = ?", orderID).First(&payment).Error
+	if err != nil {
+		return nil, err
+	}
+	return &payment, nil
+}

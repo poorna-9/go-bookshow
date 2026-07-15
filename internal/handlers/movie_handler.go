@@ -32,15 +32,6 @@ func (h *MovieHandler) CreateMovie(c *gin.Context) {
 	c.JSON(http.StatusCreated, movie)
 }
 
-func (h *MovieHandler) GetAllMovies(c *gin.Context) {
-	movies, err := h.Service.GetAllMovies()
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-	c.JSON(http.StatusOK, movies)
-}
-
 func (h *MovieHandler) GetMovieById(c *gin.Context) {
 	id := c.Param("id")
 	movie, err := h.Service.GetMovieById(id)
@@ -59,4 +50,13 @@ func (h *MovieHandler) GetMovieByCity(c *gin.Context) {
 		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 	}
 	c.JSON(200, movies)
+}
+
+func (h *MovieHandler) GetAllMovies(c *gin.Context) {
+	movies, err := h.Service.GetAllMovies()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, movies)
 }

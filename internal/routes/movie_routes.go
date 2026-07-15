@@ -8,7 +8,7 @@ import (
 func RegisterMovieRoutes(router *gin.RouterGroup, movieHandler *handlers.MovieHandler) {
 	movies := router.Group("/movies")
 	movies.POST("", movieHandler.CreateMovie)
-	movies.GET("", movieHandler.GetAllMovies)
 	movies.GET("/:id", movieHandler.GetMovieById)
 	movies.GET("", movieHandler.GetMovieByCity)
+	movies.GET("/all", movieHandler.GetAllMovies)
 }

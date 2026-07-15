@@ -10,4 +10,5 @@ func RegisterTheatreRoutes(router *gin.RouterGroup, theatreHandler *handlers.The
 	theatres.POST("", theatreHandler.CreateTheatre)
 	theatres.GET("", theatreHandler.GetTheatresByCity)
 	theatres.GET("/:id", theatreHandler.GetTheatreInfo)
+	theatres.GET("/all", theatreHandler.GetAllTheatres)
 }

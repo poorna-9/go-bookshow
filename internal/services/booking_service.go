@@ -2,6 +2,7 @@ package services
 
 import (
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/google/uuid"
@@ -25,13 +26,6 @@ func NewBookingService(repo *repositories.BookingRepository, razorpayKeyID strin
 type ReserveSlotResult struct {
 	Action    string    `json:"action"`
 	SessionID uuid.UUID `json:"session_id"`
-}
-
-type ReservedSlotsResult struct {
-	UserReserved   []uuid.UUID `json:"user_reserved"`
-	OthersReserved []uuid.UUID `json:"others_reserved"`
-	Booked         []uuid.UUID `json:"booked"`
-	SessionID      *uuid.UUID  `json:"session_id"`
 }
 
 type CheckoutResult struct {
@@ -81,17 +75,26 @@ func (s *BookingService) GetSeatsForShow(showID uuid.UUID) ([]models.ShowSeat, e
 	return s.Repo.GetSeatsOfShow(showID)
 }
 
+type SeatStatus struct {
+	SeatID     uuid.UUID `json:"seat_id"`
+	SeatNumber string    `json:"seat_number"`
+	SeatType   string    `json:"seat_type"`
+	Price      float64   `json:"price"`
+	Status     string    `json:"status"` // "available" | "yours" | "taken" | "booked"
+}
+
+type ReservedSlotsResult struct {
+	Seats     []SeatStatus `json:"seats"`
+	SessionID *uuid.UUID   `json:"session_id"`
+}
+
 func (s *BookingService) GetReservedSlots(userID *uuid.UUID, showID uuid.UUID) (*ReservedSlotsResult, error) {
 	showSeats, err := s.Repo.GetSeatsOfShow(showID)
 	if err != nil {
 		return nil, err
 	}
 
-	result := &ReservedSlotsResult{
-		UserReserved:   []uuid.UUID{},
-		OthersReserved: []uuid.UUID{},
-		Booked:         []uuid.UUID{},
-	}
+	result := &ReservedSlotsResult{Seats: []SeatStatus{}}
 
 	var userSessionID *uuid.UUID
 	if userID != nil {
@@ -103,24 +106,31 @@ func (s *BookingService) GetReservedSlots(userID *uuid.UUID, showID uuid.UUID) (
 	}
 
 	for _, seat := range showSeats {
+		status := "available"
+
 		if !seat.Available {
-			result.Booked = append(result.Booked, seat.SeatID)
-			continue
-		}
-
-		lockedBySession, err := s.Repo.GetLockSession(showID, seat.SeatID)
-		if err != nil {
-			return nil, err
-		}
-		if lockedBySession == "" {
-			continue
-		}
-
-		if userSessionID != nil && lockedBySession == userSessionID.String() {
-			result.UserReserved = append(result.UserReserved, seat.SeatID)
+			status = "booked"
 		} else {
-			result.OthersReserved = append(result.OthersReserved, seat.SeatID)
+			lockedBySession, err := s.Repo.GetLockSession(showID, seat.SeatID)
+			if err != nil {
+				return nil, err
+			}
+			if lockedBySession != "" {
+				if userSessionID != nil && lockedBySession == userSessionID.String() {
+					status = "yours"
+				} else {
+					status = "taken"
+				}
+			}
 		}
+
+		result.Seats = append(result.Seats, SeatStatus{
+			SeatID:     seat.SeatID,
+			SeatNumber: seat.SeatNumber,
+			SeatType:   seat.SeatType,
+			Price:      seat.SeatPrice,
+			Status:     status,
+		})
 	}
 
 	return result, nil
@@ -293,4 +303,39 @@ func (s *BookingService) HandlePaymentCancel(orderID string) (*CancelResult, err
 		return nil, err
 	}
 	return &CancelResult{CanRetry: false}, nil
+}
+
+type PaymentStatusResult struct {
+	Status   string `json:"status"`
+	Redirect string `json:"redirect,omitempty"`
+}
+
+func (s *BookingService) GetPaymentStatus(orderID string) (*PaymentStatusResult, error) {
+	payment, err := s.Repo.GetPaymentByOrderID(orderID)
+	if err != nil {
+		return &PaymentStatusResult{Status: "failed", Redirect: "movies.html"}, nil
+	}
+
+	switch payment.Status {
+	case models.PaymentSuccess:
+		booking, err := s.Repo.GetBookingBySessionID(payment.SessionID)
+		if err != nil {
+			return &PaymentStatusResult{Status: "pending"}, nil
+		}
+		return &PaymentStatusResult{
+			Status:   "success",
+			Redirect: fmt.Sprintf("booking.html?booking_id=%s", booking.ID),
+		}, nil
+
+	case models.PaymentFailed:
+		return &PaymentStatusResult{Status: "failed", Redirect: "movies.html"}, nil
+
+	default: // pending
+		remaining := time.Until(payment.ExpiresAt)
+		if remaining <= 0 {
+			_, _ = s.HandlePaymentCancel(orderID)
+			return &PaymentStatusResult{Status: "expired", Redirect: "movies.html"}, nil
+		}
+		return &PaymentStatusResult{Status: "pending"}, nil
+	}
 }

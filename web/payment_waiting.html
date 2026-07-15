@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>GoShow — confirming payment</title>
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    .wait-wrap {
+      min-height: calc(100vh - 70px);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 24px;
+    }
+    .wait-wrap p { max-width: 340px; }
+  </style>
+</head>
+<body>
+
+  <main class="wait-wrap">
+    <div class="reel"></div>
+    <h2 id="status-title">Confirming your payment</h2>
+    <p id="status-message">Hang tight — this usually takes a few seconds.</p>
+  </main>
+
+  <script src="js/api.js"></script>
+  <script src="js/navbar.js"></script>
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    const orderId = params.get("order_id");
+    const title = document.getElementById("status-title");
+    const message = document.getElementById("status-message");
+
+    async function poll() {
+      if (!orderId) { window.location.href = "index.html"; return; }
+
+      try {
+        // Backend endpoint for this still needs to be built:
+        // GET /bookings/payment-status/:order_id
+        const status = await apiFetch(`/bookings/payment-status/${orderId}`);
+
+        if (status.status === "success") {
+          title.textContent = "You're in!";
+          message.textContent = "Redirecting to your ticket…";
+          setTimeout(() => (window.location.href = status.redirect || "index.html"), 1200);
+          return;
+        }
+
+        if (status.status === "expired" || status.status === "failed") {
+          title.textContent = "Payment didn't go through";
+          message.textContent = "Taking you back to browse movies.";
+          setTimeout(() => (window.location.href = status.redirect || "movies.html"), 2000);
+          return;
+        }
+
+        // still pending — check again shortly
+        setTimeout(poll, 2500);
+      } catch (err) {
+        title.textContent = "Something went wrong";
+        message.textContent = err.message;
+      }
+    }
+
+    poll();
+  </script>
+</body>
+</html>

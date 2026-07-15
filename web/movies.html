@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>GoShow — now showing</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <main class="gs-container">
+    <h2>Now showing</h2>
+    <p id="subtitle" style="margin-top:6px;"></p>
+
+    <div id="alert-slot"></div>
+    <div class="gs-grid" id="movie-grid"></div>
+  </main>
+
+  <script src="js/api.js"></script>
+  <script src="js/navbar.js"></script>
+  <script>
+    const city = localStorage.getItem("gs_city");
+    document.getElementById("subtitle").textContent = city
+      ? `Playing in ${city}`
+      : "Pick a city first";
+
+    async function loadMovies() {
+      if (!city) {
+        window.location.href = "index.html";
+        return;
+      }
+
+      const grid = document.getElementById("movie-grid");
+      try {
+        const movies = await apiFetch(`/movies?city=${encodeURIComponent(city)}`);
+
+        if (!movies || movies.length === 0) {
+          grid.innerHTML = `<p>No movies found in ${city} right now.</p>`;
+          return;
+        }
+
+        grid.innerHTML = movies.map(movie => `
+          <div class="movie-card" onclick="goToShows('${movie.ID}')">
+            <div class="poster">
+              ${movie.PosterURL
+                ? `<img src="${movie.PosterURL}" alt="${movie.Title}" style="width:100%;height:100%;object-fit:cover;">`
+                : movie.Title.charAt(0)}
+            </div>
+            <div class="body">
+              <h3>${movie.Title}</h3>
+              <p class="tag">${movie.Language} · ${movie.Genre}</p>
+            </div>
+          </div>
+        `).join("");
+      } catch (err) {
+        document.getElementById("alert-slot").innerHTML =
+          `<div class="gs-alert error">${err.message}</div>`;
+      }
+    }
+
+    function goToShows(movieId) {
+      window.location.href = `shows.html?movie_id=${movieId}`;
+    }
+
+    loadMovies();
+  </script>
+</body>
+</html>

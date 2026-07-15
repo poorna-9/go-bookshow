@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>GoShow — pick your seats</title>
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    .screen-curve {
+      width: 70%;
+      max-width: 480px;
+      height: 8px;
+      margin: 0 auto 40px;
+      background: var(--marquee-dim);
+      border-radius: 0 0 60px 60px;
+      opacity: 0.6;
+    }
+    .screen-label {
+      text-align: center;
+      font-family: var(--mono);
+      font-size: 0.7rem;
+      letter-spacing: 0.2em;
+      color: var(--ash);
+      margin-bottom: 6px;
+    }
+    .seat-map {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      align-items: center;
+      margin-bottom: 32px;
+    }
+    .seat-row {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+    .row-label {
+      font-family: var(--mono);
+      font-size: 0.75rem;
+      color: var(--ash);
+      width: 20px;
+      text-align: right;
+    }
+    .seat {
+      width: 28px;
+      height: 28px;
+      border-radius: 6px 6px 10px 10px;
+      border: 1px solid var(--stage-line);
+      background: var(--stage-raised);
+      font-size: 0.6rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      color: var(--ash);
+      transition: transform 0.1s ease;
+    }
+    .seat:hover { transform: scale(1.08); }
+    .seat.premium { border-color: var(--marquee-dim); }
+    .seat.vip { border-color: var(--velvet); }
+    .seat.yours { background: var(--marquee); color: #1a1408; border-color: var(--marquee); }
+    .seat.taken, .seat.booked {
+      background: var(--stage);
+      color: var(--stage-line);
+      cursor: not-allowed;
+      border-color: var(--stage-line);
+    }
+    .legend {
+      display: flex;
+      gap: 20px;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-bottom: 40px;
+      font-size: 0.8rem;
+      color: var(--ash);
+    }
+    .legend span { display: flex; align-items: center; gap: 6px; }
+    .legend .dot { width: 14px; height: 14px; border-radius: 4px; }
+    .bar {
+      position: sticky;
+      bottom: 0;
+      background: var(--stage-raised);
+      border-top: 1px solid var(--stage-line);
+      padding: 18px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+  </style>
+</head>
+<body>
+
+  <main class="gs-container" style="padding-bottom: 0;">
+    <h2 style="text-align:center; margin-bottom: 8px;">Pick your seats</h2>
+    <div id="alert-slot"></div>
+
+    <div class="seat-map" id="seat-map"></div>
+    <div class="screen-label">screen this way</div>
+    <div class="screen-curve"></div>
+
+    <div class="legend">
+      <span><span class="dot" style="background:var(--stage-raised); border:1px solid var(--stage-line);"></span> Available</span>
+      <span><span class="dot" style="background:var(--marquee);"></span> Your pick</span>
+      <span><span class="dot" style="background:var(--stage);"></span> Taken</span>
+    </div>
+  </main>
+
+  <div class="bar">
+    <span id="selection-summary" class="mono">0 seats selected</span>
+    <button class="btn btn-marquee" id="checkout-btn" disabled>Proceed to checkout</button>
+  </div>
+
+  <script src="js/api.js"></script>
+  <script src="js/navbar.js"></script>
+  <script src="js/booking.js"></script>
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    const showId = params.get("show_id");
+    let pollTimer = null;
+
+    function showAlert(message) {
+      document.getElementById("alert-slot").innerHTML =
+        `<div class="gs-alert error">${message}</div>`;
+    }
+
+    function groupByRow(seats) {
+      const rows = {};
+      seats.forEach(seat => {
+        const rowLabel = seat.seat_number.replace(/[0-9]/g, "");
+        if (!rows[rowLabel]) rows[rowLabel] = [];
+        rows[rowLabel].push(seat);
+      });
+      return rows;
+    }
+
+    async function renderSeatMap() {
+      if (!showId) { window.location.href = "index.html"; return; }
+
+      try {
+        const data = await getReservedSlots(showId);
+        const rows = groupByRow(data.seats);
+        const map = document.getElementById("seat-map");
+
+        map.innerHTML = Object.keys(rows).sort().map(rowLabel => `
+          <div class="seat-row">
+            <span class="row-label">${rowLabel}</span>
+            ${rows[rowLabel].map(seat => `
+              <div class="seat ${seat.seat_type} ${seat.status}"
+                   data-seat-id="${seat.seat_id}"
+                   data-status="${seat.status}"
+                   title="${seat.seat_number} · ₹${seat.price}">
+                ${seat.seat_number.replace(/[A-Za-z]/g, "")}
+              </div>
+            `).join("")}
+          </div>
+        `).join("");
+
+        map.querySelectorAll(".seat").forEach(el => {
+          el.addEventListener("click", () => onSeatClick(el));
+        });
+
+        updateSummary(data.seats);
+      } catch (err) {
+        showAlert(err.message);
+      }
+    }
+
+    async function onSeatClick(el) {
+      const status = el.dataset.status;
+      if (status === "taken" || status === "booked") return;
+
+      try {
+        await reserveSeat(showId, el.dataset.seatId);
+        await renderSeatMap(); // refresh immediately after your own action
+      } catch (err) {
+        showAlert(err.message);
+      }
+    }
+
+    function updateSummary(seats) {
+      const mine = seats.filter(s => s.status === "yours");
+      document.getElementById("selection-summary").textContent =
+        `${mine.length} seat${mine.length !== 1 ? "s" : ""} selected`;
+      document.getElementById("checkout-btn").disabled = mine.length === 0;
+    }
+
+    document.getElementById("checkout-btn").addEventListener("click", () => {
+      window.location.href = `checkout.html?show_id=${showId}`;
+    });
+
+    // Poll every 3s so seats others grab show up as "taken" without a refresh.
+    function startPolling() {
+      pollTimer = setInterval(renderSeatMap, 3000);
+    }
+
+    renderSeatMap();
+    startPolling();
+    window.addEventListener("beforeunload", () => clearInterval(pollTimer));
+  </script>
+</body>
+</html>

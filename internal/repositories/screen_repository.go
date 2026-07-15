@@ -2,7 +2,6 @@ package repositories
 
 import (
 	"fmt"
-	"strconv"
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
@@ -57,21 +56,21 @@ func (r *ScreenRepository) Deactivate(id string) error {
 
 func (r *ScreenRepository) CreateSeats(screenID uuid.UUID, layout []SeatLayoutRow) error {
 	var seats []models.Seat
+	rowOffset := 0
 
 	for _, block := range layout {
 		for row := 0; row < block.Rows; row++ {
-			for seat := 1; seat <= block.SeatsPerRow; seat++ {
-
-				seatNumber := fmt.Sprintf("%d%02d", row, seat)
-
+			rowLabel := string(rune('A' + rowOffset + row))
+			for seatNum := 1; seatNum <= block.SeatsPerRow; seatNum++ {
 				seats = append(seats, models.Seat{
 					ScreenID:   screenID,
-					RowLabel:   strconv.Itoa(row),
-					SeatNumber: seatNumber,
+					RowLabel:   rowLabel,
+					SeatNumber: fmt.Sprintf("%s%d", rowLabel, seatNum),
 					SeatType:   block.SeatType,
 				})
 			}
 		}
+		rowOffset += block.Rows
 	}
 
 	return r.DB.Create(&seats).Error

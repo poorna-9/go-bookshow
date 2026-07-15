@@ -182,3 +182,15 @@ func (h *BookingHandler) RazorpayWebhook(c *gin.Context) {
 
 	c.Status(http.StatusOK)
 }
+
+func (h *BookingHandler) GetPaymentStatus(c *gin.Context) {
+	orderID := c.Param("order_id")
+
+	result, err := h.Service.GetPaymentStatus(orderID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, result)
+}

@@ -61,3 +61,7 @@ func (s *TheatreService) Gettheatreinfo(id string) TheatreInfoResponse {
 		Status:       theatre.Status,
 	}
 }
+
+func (s *TheatreService) GetAllTheatres() []models.Theatre {
+	return s.repo.FindAll()
+}

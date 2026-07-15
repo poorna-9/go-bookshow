@@ -33,3 +33,9 @@ func (r *TheatreRepository) FindById(id string) []models.Theatre {
 
 	return theatres
 }
+
+func (r *TheatreRepository) FindAll() []models.Theatre {
+	var theatres []models.Theatre
+	r.db.Where("status = ?", "active").Find(&theatres)
+	return theatres
+}

@@ -1,6 +1,8 @@
 package handlers
 
 import (
+	"net/http"
+
 	"github.com/gin-gonic/gin"
 	"github.com/poorna-9/goshow/internal/models"
 	"github.com/poorna-9/goshow/internal/services"
@@ -40,4 +42,9 @@ func (h *TheatreHandler) GetTheatreInfo(c *gin.Context) {
 	c.JSON(200, gin.H{
 		"data": theatre,
 	})
+}
+
+func (h *TheatreHandler) GetAllTheatres(c *gin.Context) {
+	theatres := h.service.GetAllTheatres()
+	c.JSON(http.StatusOK, theatres)
 }

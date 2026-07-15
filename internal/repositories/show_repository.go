@@ -59,7 +59,7 @@ func (r *ShowRepository) FindByMovieAndCity(movieid string, city string, date st
 	var result []ShowTheatre
 	err := r.db.
 		Table("shows").
-		Select("shows.id as show_id, shows.start_time, shows.end_time, shows.base_price, screens.name as screen_name,shows.date as date, theatres.id as theatre_id,theatres,address as Address, theatres.name as theatre_name, theatres.area as theatre_area").
+		Select("shows.id as show_id, shows.start_time, shows.end_time, shows.base_price, screens.name as screen_name,shows.date as date, theatres.id as theatre_id,theatres.address as Address, theatres.name as theatre_name, theatres.area as theatre_area").
 		Joins("JOIN screens on screens.id = shows.screen_id").
 		Joins("JOIN theatres on theatres.id = screens.theatre_id").
 		Where("shows.movie_id = ? AND theatres.city = ? AND shows.date = ?", movieid, city, date).
@@ -84,11 +84,11 @@ func (r *ShowRepository) CreateBookSeat(showID uuid.UUID) error {
 		price := 0.0
 
 		switch seat.SeatType {
-		case "Regular":
+		case models.SeatRegular:
 			price = show.RegularPrice
-		case "Premium":
+		case models.SeatPremium:
 			price = show.PremiumPrice
-		case "VIP":
+		case models.SeatVIP:
 			price = show.VIPPrice
 		}
 

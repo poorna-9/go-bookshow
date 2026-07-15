@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>GoShow — checkout</title>
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    .checkout-wrap { max-width: 560px; margin: 0 auto; }
+    .seat-item {
+      display: flex;
+      justify-content: space-between;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--stage-line);
+      font-family: var(--mono);
+      font-size: 0.9rem;
+    }
+  </style>
+</head>
+<body>
+
+  <main class="gs-container checkout-wrap">
+    <h2>Checkout</h2>
+    <div id="alert-slot" style="margin-top:20px;"></div>
+
+    <div class="ticket" id="ticket" style="margin-top:24px; display:none;">
+      <div class="stub-main">
+        <h3 id="seat-count-label">Your seats</h3>
+        <div id="seat-list"></div>
+      </div>
+      <div class="stub-side">
+        <p class="tag">Total</p>
+        <div class="amount mono" id="total-amount">₹0</div>
+      </div>
+    </div>
+
+    <button class="btn btn-marquee btn-block" id="pay-btn" style="margin-top:28px;" disabled>
+      Loading…
+    </button>
+  </main>
+
+  <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/navbar.js"></script>
+  <script src="js/booking.js"></script>
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    const showId = params.get("show_id");
+    const payBtn = document.getElementById("pay-btn");
+    let currentAmount = 0;
+
+    function showAlert(message) {
+      document.getElementById("alert-slot").innerHTML =
+        `<div class="gs-alert error">${message}</div>`;
+    }
+
+    function resetPayButton() {
+      payBtn.disabled = false;
+      payBtn.textContent = `Pay ₹${currentAmount}`;
+    }
+
+    async function loadSummary() {
+      if (!showId) { window.location.href = "index.html"; return; }
+
+      try {
+        const summary = await getCheckoutSummary(showId);
+        currentAmount = summary.total_amount;
+
+        document.getElementById("ticket").style.display = "flex";
+        document.getElementById("seat-count-label").textContent =
+          `${summary.seats.length} seat${summary.seats.length > 1 ? "s" : ""}`;
+        document.getElementById("seat-list").innerHTML = summary.seats.map(s => `
+          <div class="seat-item">
+            <span>${s.seat_number} · ${s.seat_type}</span>
+            <span>₹${s.price}</span>
+          </div>
+        `).join("");
+        document.getElementById("total-amount").textContent = `₹${summary.total_amount}`;
+
+        resetPayButton();
+      } catch (err) {
+        showAlert(err.message);
+        payBtn.textContent = "Nothing to pay for";
+      }
+    }
+
+    payBtn.addEventListener("click", async () => {
+      payBtn.disabled = true;
+      payBtn.textContent = "Processing…";
+
+      try {
+        const order = await initiateCheckout(showId);
+
+        if (order.expired) {
+          showAlert("Your seat hold expired. Taking you back to browse movies.");
+          setTimeout(() => (window.location.href = "movies.html"), 2000);
+          return;
+        }
+
+        const rzp = new Razorpay({
+          key: order.razorpay_key_id,
+          order_id: order.razorpay_order_id,
+          amount: order.amount * 100,
+          currency: "INR",
+          name: "GoShow",
+          description: "Movie ticket booking",
+          theme: { color: "#e8b23d" },
+          handler: async function (response) {
+            await paymentCallback({
+              razorpay_order_id: response.razorpay_order_id,
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_signature: response.razorpay_signature,
+            });
+            window.location.href = `payment-waiting.html?order_id=${response.razorpay_order_id}`;
+          },
+          modal: { ondismiss: resetPayButton },
+        });
+
+        rzp.on("payment.failed", async (response) => {
+          await paymentCallback({
+            error: true,
+            razorpay_order_id: response.error.metadata.order_id,
+          });
+          window.location.href = `payment-waiting.html?order_id=${response.error.metadata.order_id}`;
+        });
+
+        rzp.open();
+      } catch (err) {
+        showAlert(err.message);
+        resetPayButton();
+      }
+    });
+
+    loadSummary();
+  </script>
+</body>
+</html>
