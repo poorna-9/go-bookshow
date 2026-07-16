@@ -24,6 +24,6 @@ func RegisterRoutes(router *gin.Engine, h *Handlers, jwtSecret string) {
 	RegisterSeatRoutes(v1, h.Seat)
 	RegisterMovieRoutes(v1, h.Movie, jwtSecret)
 	RegisterShowRoutes(v1, h.Show, jwtSecret)
-	RegisterBookingRoutes(v1, h.Booking)
+	RegisterBookingRoutes(v1, h.Booking, jwtSecret)
 	RegisterAuthRoutes(v1, h.Auth, jwtSecret)
 }

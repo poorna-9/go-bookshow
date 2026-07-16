@@ -25,86 +25,9 @@ type ReserveSlotInput struct {
 	SeatID uuid.UUID `json:"seat_id"`
 }
 
-func (h *BookingHandler) ReserveSlot(c *gin.Context) {
-	var input ReserveSlotInput
-	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-
-	result, err := h.Service.ReserveSlot(input.UserID, input.SeatID, input.ShowID)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-
-	c.JSON(http.StatusOK, result)
-}
-
-func (h *BookingHandler) GetReservedSlots(c *gin.Context) {
-	showID, err := uuid.Parse(c.Param("show_id"))
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid show_id"})
-		return
-	}
-
-	var userID *uuid.UUID
-	if uidStr := c.Query("user_id"); uidStr != "" {
-		parsed, err := uuid.Parse(uidStr)
-		if err == nil {
-			userID = &parsed
-		}
-	}
-
-	result, err := h.Service.GetReservedSlots(userID, showID)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
-	c.JSON(http.StatusOK, result)
-}
-
 type CheckoutInput struct {
 	UserID uuid.UUID `json:"user_id"`
 	ShowID uuid.UUID `json:"show_id"`
-}
-
-func (h *BookingHandler) GetCheckout(c *gin.Context) {
-	showID, err := uuid.Parse(c.Query("show_id"))
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid show_id"})
-		return
-	}
-	userID, err := uuid.Parse(c.Query("user_id"))
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid user_id"})
-		return
-	}
-
-	summary, err := h.Service.GetCheckoutSummary(userID, showID)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-
-	c.JSON(http.StatusOK, summary)
-}
-
-func (h *BookingHandler) InitiateCheckout(c *gin.Context) {
-	var input CheckoutInput
-	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-
-	result, err := h.Service.InitiateCheckOut(input.UserID, input.ShowID)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-
-	c.JSON(http.StatusOK, result)
 }
 
 type PaymentCallbackInput struct {
@@ -192,5 +115,72 @@ func (h *BookingHandler) GetPaymentStatus(c *gin.Context) {
 		return
 	}
 
+	c.JSON(http.StatusOK, result)
+}
+
+func getUserID(c *gin.Context) uuid.UUID {
+	return c.MustGet("user_id").(uuid.UUID)
+}
+
+func (h *BookingHandler) ReserveSlot(c *gin.Context) {
+	var input struct {
+		ShowID uuid.UUID `json:"show_id"`
+		SeatID uuid.UUID `json:"seat_id"`
+	}
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	result, err := h.Service.ReserveSlot(getUserID(c), input.SeatID, input.ShowID)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, result)
+}
+
+func (h *BookingHandler) GetReservedSlots(c *gin.Context) {
+	showID, err := uuid.Parse(c.Param("show_id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid show_id"})
+		return
+	}
+	userID := getUserID(c)
+	result, err := h.Service.GetReservedSlots(&userID, showID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, result)
+}
+
+func (h *BookingHandler) GetCheckout(c *gin.Context) {
+	showID, err := uuid.Parse(c.Query("show_id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid show_id"})
+		return
+	}
+	summary, err := h.Service.GetCheckoutSummary(getUserID(c), showID)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, summary)
+}
+
+func (h *BookingHandler) InitiateCheckout(c *gin.Context) {
+	var input struct {
+		ShowID uuid.UUID `json:"show_id"`
+	}
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	result, err := h.Service.InitiateCheckOut(getUserID(c), input.ShowID)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
 	c.JSON(http.StatusOK, result)
 }

@@ -81,7 +81,7 @@ func main() {
 		Show:    showHandler,
 		Booking: bookingHandler,
 		Auth:    authHandler,
-	})
+	}, "")
 
 	log.Printf("starting server on :%s", cfg.AppPort)
 	router.Run(":" + cfg.AppPort)

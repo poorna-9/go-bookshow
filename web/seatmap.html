@@ -115,6 +115,10 @@
   <script src="js/navbar.js"></script>
   <script src="js/booking.js"></script>
   <script>
+    if (!isLoggedIn()) {
+      window.location.href = `login.html?next=seatmap.html${window.location.search}`;
+    }
+
     const params = new URLSearchParams(window.location.search);
     const showId = params.get("show_id");
     let pollTimer = null;
