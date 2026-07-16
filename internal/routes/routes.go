@@ -1,8 +1,6 @@
 package routes
 
 import (
-	"os"
-
 	"github.com/gin-gonic/gin"
 
 	"github.com/poorna-9/goshow/internal/handlers"
@@ -18,19 +16,14 @@ type Handlers struct {
 	Auth    *handlers.AuthHandler
 }
 
-func RegisterRoutes(router *gin.Engine, h *Handlers) {
+func RegisterRoutes(router *gin.Engine, h *Handlers, jwtSecret string) {
 	v1 := router.Group("/api/v1")
 
-	RegisterTheatreRoutes(v1, h.Theatre)
-	RegisterScreenRoutes(v1, h.Screen)
+	RegisterTheatreRoutes(v1, h.Theatre, jwtSecret)
+	RegisterScreenRoutes(v1, h.Screen, jwtSecret)
 	RegisterSeatRoutes(v1, h.Seat)
-	RegisterMovieRoutes(v1, h.Movie)
-	RegisterShowRoutes(v1, h.Show)
+	RegisterMovieRoutes(v1, h.Movie, jwtSecret)
+	RegisterShowRoutes(v1, h.Show, jwtSecret)
 	RegisterBookingRoutes(v1, h.Booking)
-	// jwtSecret is read from the JWT_SECRET env var with a default fallback
-	jwt := os.Getenv("JWT_SECRET")
-	if jwt == "" {
-		jwt = "secret"
-	}
-	RegisterAuthRoutes(v1, h.Auth, jwt)
+	RegisterAuthRoutes(v1, h.Auth, jwtSecret)
 }
