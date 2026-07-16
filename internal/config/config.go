@@ -22,6 +22,7 @@ type Config struct {
 	RazorpayKeySecret     string
 	RazorpayWebhookSecret string
 	JWTSecret             string
+	AdminSignupCode       string
 }
 
 func getEnv(key, fallback string) string {

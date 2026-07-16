@@ -12,8 +12,9 @@ func AutoMigrate(db *gorm.DB) error {
 		&Seat{},
 		&Movie{},
 		&Show{},
+		&ShowSeat{},
+		&BookingSession{},
 		&Booking{},
-		&BookingSeat{},
 		&Payment{},
 	)
 }

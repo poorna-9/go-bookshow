@@ -3,6 +3,7 @@ package services
 import (
 	"errors"
 
+	"github.com/google/uuid"
 	"github.com/poorna-9/goshow/internal/models"
 	"github.com/poorna-9/goshow/internal/repositories"
 )
@@ -36,4 +37,8 @@ func (s *MovieService) GetMovieById(id string) ([]models.Movie, error) {
 
 func (s *MovieService) GetMovieByCity(city string) ([]models.Movie, error) {
 	return s.repo.FindByCity(city)
+}
+
+func (s *MovieService) UpdatePosterURL(id uuid.UUID, url string) error {
+	return s.repo.UpdatePosterURL(id, url)
 }

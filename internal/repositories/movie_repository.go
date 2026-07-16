@@ -54,3 +54,7 @@ func (r *MovieRepository) FindByCity(city string) ([]models.Movie, error) {
 	return movies, err
 
 }
+
+func (r *MovieRepository) UpdatePosterURL(id uuid.UUID, url string) error {
+	return r.db.Model(&models.Movie{}).Where("id = ?", id).Update("poster_url", url).Error
+}

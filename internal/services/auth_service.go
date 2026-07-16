@@ -13,19 +13,21 @@ import (
 )
 
 type AuthService struct {
-	Repo      *repositories.UserRepository
-	JWTSecret string
+	Repo            *repositories.UserRepository
+	JWTSecret       string
+	AdminSignupCode string
 }
 
-func NewAuthService(repo *repositories.UserRepository, jwtSecret string) *AuthService {
-	return &AuthService{Repo: repo, JWTSecret: jwtSecret}
+func NewAuthService(repo *repositories.UserRepository, jwtSecret, adminSignupCode string) *AuthService {
+	return &AuthService{Repo: repo, JWTSecret: jwtSecret, AdminSignupCode: adminSignupCode}
 }
 
 type SignupInput struct {
-	Name     string `json:"name"`
-	Email    string `json:"email"`
-	Password string `json:"password"`
-	Phone    string `json:"phone"`
+	Name      string `json:"name"`
+	Email     string `json:"email"`
+	Password  string `json:"password"`
+	Phone     string `json:"phone"`
+	AdminCode string `json:"admin_code"`
 }
 
 type LoginInput struct {
@@ -61,6 +63,10 @@ func (s *AuthService) Signup(input SignupInput) (*AuthResult, error) {
 	if err != nil {
 		return nil, err
 	}
+	role := models.RoleUser
+	if input.AdminCode != "" && s.AdminSignupCode != "" && input.AdminCode == s.AdminSignupCode {
+		role = models.RoleAdmin
+	}
 
 	user := &models.User{
 		ID:           uuid.New(),
@@ -68,7 +74,7 @@ func (s *AuthService) Signup(input SignupInput) (*AuthResult, error) {
 		Email:        input.Email,
 		PasswordHash: string(hash),
 		Phone:        input.Phone,
-		Role:         models.RoleUser,
+		Role:         role,
 	}
 	if err := s.Repo.Create(user); err != nil {
 		return nil, err

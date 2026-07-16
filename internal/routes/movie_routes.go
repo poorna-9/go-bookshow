@@ -12,4 +12,5 @@ func RegisterMovieRoutes(router *gin.RouterGroup, movieHandler *handlers.MovieHa
 	movies.GET("/all", movieHandler.GetAllMovies)
 	movies.GET("", movieHandler.GetMovieByCity)
 	movies.GET("/:id", movieHandler.GetMovieById)
+	movies.POST("/:id/poster", middleware.RequireAuth(jwtSecret), middleware.RequireAdmin(), movieHandler.UploadPoster)
 }

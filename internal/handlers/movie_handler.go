@@ -2,8 +2,10 @@ package handlers
 
 import (
 	"net/http"
+	"path/filepath"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 
 	"github.com/poorna-9/goshow/internal/models"
 	"github.com/poorna-9/goshow/internal/services"
@@ -59,4 +61,34 @@ func (h *MovieHandler) GetAllMovies(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, movies)
+}
+
+func (h *MovieHandler) UploadPoster(c *gin.Context) {
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid movie id"})
+		return
+	}
+
+	file, err := c.FormFile("poster")
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "poster file is required"})
+		return
+	}
+
+	filename := id.String() + filepath.Ext(file.Filename)
+	savePath := filepath.Join("web", "images", "posters", filename)
+
+	if err := c.SaveUploadedFile(file, savePath); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to save poster"})
+		return
+	}
+
+	url := "/images/posters/" + filename
+	if err := h.Service.UpdatePosterURL(id, url); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"poster_url": url})
 }

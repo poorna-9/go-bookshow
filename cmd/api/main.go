@@ -24,51 +24,40 @@ func main() {
 	}
 	log.Println("connected to database successfully")
 
-	err = models.AutoMigrate(db)
-	if err != nil {
+	if err := models.AutoMigrate(db); err != nil {
 		log.Fatalf("failed to auto-migrate: %v", err)
 	}
 	log.Println("all tables migrated successfully")
 
-	// Redis
 	redisClient := config.NewRedisClient(cfg)
-
-	// Razorpay
 	razorpayClient := config.NewRazorpayClient(cfg)
 
-	// Theatre
 	theatreRepo := repositories.NewTheatreRepository(db)
 	theatreService := services.NewTheatreService(theatreRepo)
 	theatreHandler := handlers.NewTheatreHandler(theatreService)
 
-	// Screen
 	screenRepo := repositories.NewScreenRepository(db)
 	screenService := services.NewScreenService(screenRepo)
 	screenHandler := handlers.NewScreenHandler(screenService)
 
-	// Seat
 	seatRepo := repositories.NewSeatRepository(db)
 	seatService := services.NewSeatService(seatRepo)
 	seatHandler := handlers.NewSeatHandler(seatService)
 
-	// Movie
 	movieRepo := repositories.NewMovieRepository(db)
 	movieService := services.NewMovieService(movieRepo)
 	movieHandler := handlers.NewMovieHandler(movieService)
 
-	// Show
 	showRepo := repositories.NewShowRepository(db)
 	showService := services.NewShowService(showRepo)
 	showHandler := handlers.NewShowHandler(showService)
 
-	// Booking
 	bookingRepo := repositories.NewBookingRepository(db, redisClient, razorpayClient, cfg.RazorpayKeySecret, cfg.RazorpayWebhookSecret)
 	bookingService := services.NewBookingService(bookingRepo, cfg.RazorpayKeyID)
 	bookingHandler := handlers.NewBookingHandler(bookingService)
 
-	// Auth
 	userRepo := repositories.NewUserRepository(db)
-	authService := services.NewAuthService(userRepo, cfg.JWTSecret)
+	authService := services.NewAuthService(userRepo, cfg.JWTSecret, cfg.AdminSignupCode)
 	authHandler := handlers.NewAuthHandler(authService)
 
 	router := gin.Default()
@@ -77,30 +66,22 @@ func main() {
 	router.Static("/js", "./web/js")
 	router.Static("/images", "./web/images")
 
-	// Serve frontend pages
-	router.GET("/", func(c *gin.Context) {
-		c.File("./web/index.html")
-	})
-
-	router.GET("/movies", func(c *gin.Context) {
-		c.File("./web/movies.html")
-	})
-
-	router.GET("/theatres", func(c *gin.Context) {
-		c.File("./web/theatres.html")
-	})
-
-	router.GET("/checkout", func(c *gin.Context) {
-		c.File("./web/checkout.html")
-	})
-
-	router.GET("/login", func(c *gin.Context) {
-		c.File("./web/login.html")
-	})
-
-	router.GET("/signup", func(c *gin.Context) {
-		c.File("./web/signup.html")
-	})
+	pages := map[string]string{
+		"/":                "index.html",
+		"/movies":          "movies.html",
+		"/shows":           "shows.html",
+		"/seatmap":         "seatmap.html",
+		"/checkout":        "checkout.html",
+		"/booking":         "booking.html",
+		"/payment-waiting": "payment-waiting.html",
+		"/login":           "login.html",
+		"/signup":          "signup.html",
+		"/admin":           "admin.html",
+	}
+	for path, file := range pages {
+		filePath := "./web/" + file
+		router.GET(path, func(c *gin.Context) { c.File(filePath) })
+	}
 
 	routes.RegisterRoutes(router, &routes.Handlers{
 		Theatre: theatreHandler,
@@ -110,7 +91,7 @@ func main() {
 		Show:    showHandler,
 		Booking: bookingHandler,
 		Auth:    authHandler,
-	}, "")
+	}, cfg.JWTSecret)
 
 	log.Printf("starting server on :%s", cfg.AppPort)
 	router.Run(":" + cfg.AppPort)
