@@ -35,7 +35,7 @@
     const message = document.getElementById("status-message");
 
     async function poll() {
-      if (!orderId) { window.location.href = "index.html"; return; }
+      if (!orderId) { window.location.href = "/"; return; }
 
       try {
         // Backend endpoint for this still needs to be built:
@@ -45,14 +45,14 @@
         if (status.status === "success") {
           title.textContent = "You're in!";
           message.textContent = "Redirecting to your ticket…";
-          setTimeout(() => (window.location.href = status.redirect || "index.html"), 1200);
+          setTimeout(() => (window.location.href = status.redirect || "/"), 1200);
           return;
         }
 
         if (status.status === "expired" || status.status === "failed") {
           title.textContent = "Payment didn't go through";
           message.textContent = "Taking you back to browse movies.";
-          setTimeout(() => (window.location.href = status.redirect || "movies.html"), 2000);
+          setTimeout(() => (window.location.href = status.redirect || "/movies"), 2000);
           return;
         }
 

@@ -73,6 +73,35 @@ func main() {
 
 	router := gin.Default()
 
+	router.Static("/css", "./web/css")
+	router.Static("/js", "./web/js")
+	router.Static("/images", "./web/images")
+
+	// Serve frontend pages
+	router.GET("/", func(c *gin.Context) {
+		c.File("./web/index.html")
+	})
+
+	router.GET("/movies", func(c *gin.Context) {
+		c.File("./web/movies.html")
+	})
+
+	router.GET("/theatres", func(c *gin.Context) {
+		c.File("./web/theatres.html")
+	})
+
+	router.GET("/checkout", func(c *gin.Context) {
+		c.File("./web/checkout.html")
+	})
+
+	router.GET("/login", func(c *gin.Context) {
+		c.File("./web/login.html")
+	})
+
+	router.GET("/signup", func(c *gin.Context) {
+		c.File("./web/signup.html")
+	})
+
 	routes.RegisterRoutes(router, &routes.Handlers{
 		Theatre: theatreHandler,
 		Screen:  screenHandler,

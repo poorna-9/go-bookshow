@@ -116,7 +116,7 @@
   <script src="js/booking.js"></script>
   <script>
     if (!isLoggedIn()) {
-      window.location.href = `login.html?next=seatmap.html${window.location.search}`;
+      window.location.href = `/login?next=seatmap.html${window.location.search}`;
     }
 
     const params = new URLSearchParams(window.location.search);
@@ -139,7 +139,7 @@
     }
 
     async function renderSeatMap() {
-      if (!showId) { window.location.href = "index.html"; return; }
+      if (!showId) { window.location.href = "/"; return; }
 
       try {
         const data = await getReservedSlots(showId);
@@ -190,7 +190,7 @@
     }
 
     document.getElementById("checkout-btn").addEventListener("click", () => {
-      window.location.href = `checkout.html?show_id=${showId}`;
+      window.location.href = `/checkout?show_id=${showId}`;
     });
 
     // Poll every 3s so seats others grab show up as "taken" without a refresh.

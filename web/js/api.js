@@ -11,7 +11,7 @@ function isLoggedIn() {
 function logout() {
   localStorage.removeItem("gs_token");
   localStorage.removeItem("gs_user");
-  window.location.href = "index.html";
+  window.location.href = "/";
 }
 
 async function apiFetch(path, options = {}) {

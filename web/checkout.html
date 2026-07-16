@@ -45,7 +45,7 @@
   <script src="js/booking.js"></script>
   <script>
     if (!isLoggedIn()) {
-      window.location.href = `login.html?next=checkout.html${window.location.search}`;
+      window.location.href = `/login?next=/checkout${window.location.search}`;
     } else {
       const params = new URLSearchParams(window.location.search);
       const showId = params.get("show_id");
@@ -63,7 +63,7 @@
       };
 
       const loadSummary = async () => {
-        if (!showId) { window.location.href = "index.html"; return; }
+        if (!showId) { window.location.href = "/"; return; }
 
         try {
           const summary = await getCheckoutSummary(showId);
@@ -96,7 +96,7 @@
 
           if (order.expired) {
             showAlert("Your seat hold expired. Taking you back to browse movies.");
-            setTimeout(() => (window.location.href = "movies.html"), 2000);
+            setTimeout(() => (window.location.href = "/movies"), 2000);
             return;
           }
 
@@ -135,7 +135,7 @@
               resetPayButton();
             } else {
               showAlert("Your payment window expired. Taking you back to browse movies.");
-              setTimeout(() => (window.location.href = "movies.html"), 2000);
+              setTimeout(() => (window.location.href = "/movies"), 2000);
             }
           });
 

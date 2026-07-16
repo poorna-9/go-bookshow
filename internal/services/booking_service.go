@@ -326,7 +326,7 @@ type PaymentStatusResult struct {
 func (s *BookingService) GetPaymentStatus(orderID string) (*PaymentStatusResult, error) {
 	payment, err := s.Repo.GetPaymentByOrderID(orderID)
 	if err != nil {
-		return &PaymentStatusResult{Status: "failed", Redirect: "movies.html"}, nil
+		return &PaymentStatusResult{Status: "failed", Redirect: "/movies"}, nil
 	}
 
 	switch payment.Status {
@@ -341,13 +341,13 @@ func (s *BookingService) GetPaymentStatus(orderID string) (*PaymentStatusResult,
 		}, nil
 
 	case models.PaymentFailed:
-		return &PaymentStatusResult{Status: "failed", Redirect: "movies.html"}, nil
+		return &PaymentStatusResult{Status: "failed", Redirect: "/movies"}, nil
 
 	default: // pending
 		remaining := time.Until(payment.ExpiresAt)
 		if remaining <= 0 {
 			_, _ = s.HandlePaymentCancel(orderID)
-			return &PaymentStatusResult{Status: "expired", Redirect: "movies.html"}, nil
+			return &PaymentStatusResult{Status: "expired", Redirect: "/movies"}, nil
 		}
 		return &PaymentStatusResult{Status: "pending"}, nil
 	}
