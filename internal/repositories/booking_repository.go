@@ -329,3 +329,46 @@ func (r *BookingRepository) GetPaymentStatus(orderID string) (*models.Payment, e
 	}
 	return &payment, nil
 }
+
+func (r *BookingRepository) SetActivityShow(user_id, show_id uuid.UUID, ttl time.Duration) error {
+	ctx := context.Background()
+	key := fmt.Sprintf("active_show:%s", user_id.String())
+	return r.RDB.Set(ctx, key, show_id.String(), ttl).Err()
+}
+func (r *BookingRepository) GetActivesession_in_redis(user_id uuid.UUID) (string, error) {
+	ctx := context.Background()
+	key := fmt.Sprintf("active_show:%s", user_id.String())
+	val, err := r.RDB.Get(ctx, key).Result()
+	if err == redis.Nil {
+		return "", nil
+	}
+	if err != nil {
+		return "", err
+	}
+	return val, nil
+
+}
+
+func (r *BookingRepository) ReleaseUserSession(user_id, show_id uuid.UUID) error {
+	session, err := r.GetActiveSession(user_id, show_id)
+	if err != nil {
+		return nil
+	}
+	ctx := context.Background()
+	seatIDs, err := r.GetSessionSeatIDs(session.ID)
+	if err != nil {
+		return err
+	}
+
+	for _, seatID := range seatIDs {
+		lockKey := fmt.Sprintf("seat_lock:%s:%s", show_id.String(), seatID.String())
+		r.RDB.Del(ctx, lockKey)
+	}
+	sessionKey := fmt.Sprintf("session_seats:%s", session.ID.String())
+	r.RDB.Del(ctx, sessionKey)
+
+	return r.DB.Model(&models.BookingSession{}).
+		Where("id = ?", session.ID).
+		Update("expired", true).Error
+
+}

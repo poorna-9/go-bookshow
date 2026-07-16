@@ -36,6 +36,19 @@ type CheckoutResult struct {
 }
 
 func (s *BookingService) ReserveSlot(userID, seatID, showID uuid.UUID) (*ReserveSlotResult, error) {
+
+	activeShowStr, err := s.Repo.GetActivesession_in_redis(userID)
+	if err == nil && activeShowStr != "" && activeShowStr != showID.String() {
+		oldShowID, parseErr := uuid.Parse(activeShowStr)
+		if parseErr == nil {
+			if err := s.Repo.ReleaseUserSession(userID, oldShowID); err != nil {
+				return nil, err
+			}
+		}
+	}
+	if err := s.Repo.SetActivityShow(userID, showID, SessionTTL); err != nil {
+		return nil, err
+	}
 	session, err := s.Repo.GetActiveSession(userID, showID)
 	if err != nil {
 		session, err = s.Repo.CreateActiveSession(userID, showID)
