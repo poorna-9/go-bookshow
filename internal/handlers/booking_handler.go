@@ -184,3 +184,19 @@ func (h *BookingHandler) InitiateCheckout(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, result)
 }
+
+func (h *BookingHandler) GetBookingDetail(c *gin.Context) {
+	bookingID, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid booking id"})
+		return
+	}
+
+	detail, err := h.Service.GetBookingDetail(bookingID, getUserID(c))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, detail)
+}

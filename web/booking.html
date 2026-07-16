@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>GoShow — your ticket</title>
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    .booking-wrap { max-width: 560px; margin: 60px auto; padding: 0 24px; }
+    .booking-wrap h2 { text-align: center; margin-bottom: 6px; }
+    .booking-wrap .subline { text-align: center; margin-bottom: 32px; }
+    .status-badge {
+      display: inline-block;
+      font-family: var(--mono);
+      font-size: 0.75rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      padding: 4px 12px;
+      border-radius: 999px;
+      margin-bottom: 6px;
+    }
+    .status-badge.confirmed { background: rgba(76, 175, 125, 0.15); color: var(--available); }
+    .status-badge.pending { background: rgba(232, 178, 61, 0.15); color: var(--marquee); }
+    .status-badge.cancelled { background: rgba(193, 68, 61, 0.15); color: var(--velvet); }
+    .seat-item {
+      display: flex;
+      justify-content: space-between;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--stage-line);
+      font-family: var(--mono);
+      font-size: 0.9rem;
+    }
+    .booking-id {
+      text-align: center;
+      font-family: var(--mono);
+      font-size: 0.8rem;
+      color: var(--ash);
+      margin-top: 24px;
+    }
+  </style>
+</head>
+<body>
+
+  <main class="gs-container booking-wrap">
+    <div style="text-align:center;">
+      <span class="status-badge" id="status-badge"></span>
+    </div>
+    <h2>Your ticket</h2>
+    <p class="subline">Show this at the counter, or just relax — it's already on file.</p>
+
+    <div id="alert-slot"></div>
+
+    <div class="ticket" id="ticket" style="display:none;">
+      <div class="stub-main">
+        <h3 id="seat-count-label">Seats</h3>
+        <div id="seat-list"></div>
+      </div>
+      <div class="stub-side">
+        <p class="tag">Paid</p>
+        <div class="amount mono" id="total-amount">₹0</div>
+      </div>
+    </div>
+
+    <p class="booking-id" id="booking-id"></p>
+
+    <div style="text-align:center; margin-top:32px;">
+      <a href="movies.html" class="btn btn-outline">Browse more movies</a>
+    </div>
+  </main>
+
+  <script src="js/api.js"></script>
+  <script src="js/navbar.js"></script>
+  <script>
+    if (!isLoggedIn()) {
+      window.location.href = `login.html?next=booking.html${window.location.search}`;
+    } else {
+      const params = new URLSearchParams(window.location.search);
+      const bookingId = params.get("booking_id");
+
+      const showAlert = (message) => {
+        document.getElementById("alert-slot").innerHTML =
+          `<div class="gs-alert error">${message}</div>`;
+      };
+
+      const loadBooking = async () => {
+        if (!bookingId) { window.location.href = "movies.html"; return; }
+
+        try {
+          const booking = await apiFetch(`/bookings/${bookingId}`);
+
+          const badge = document.getElementById("status-badge");
+          badge.textContent = booking.status;
+          badge.classList.add(booking.status);
+
+          document.getElementById("ticket").style.display = "flex";
+          document.getElementById("seat-count-label").textContent =
+            `${booking.seats.length} seat${booking.seats.length !== 1 ? "s" : ""}`;
+          document.getElementById("seat-list").innerHTML = booking.seats.map(s => `
+            <div class="seat-item">
+              <span>${s.seat_number} · ${s.seat_type}</span>
+              <span>₹${s.price}</span>
+            </div>
+          `).join("");
+          document.getElementById("total-amount").textContent = `₹${booking.total_amount}`;
+          document.getElementById("booking-id").textContent = `Booking ID ${booking.booking_id}`;
+        } catch (err) {
+          showAlert(err.message);
+        }
+      };
+
+      loadBooking();
+    }
+  </script>
+</body>
+</html>

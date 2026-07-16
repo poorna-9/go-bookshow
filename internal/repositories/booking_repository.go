@@ -372,3 +372,12 @@ func (r *BookingRepository) ReleaseUserSession(user_id, show_id uuid.UUID) error
 		Update("expired", true).Error
 
 }
+
+func (r *BookingRepository) GetBookingByID(id uuid.UUID) (*models.Booking, error) {
+	var booking models.Booking
+	err := r.DB.First(&booking, "id = ?", id).Error
+	if err != nil {
+		return nil, err
+	}
+	return &booking, nil
+}

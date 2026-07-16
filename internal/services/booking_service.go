@@ -352,3 +352,46 @@ func (s *BookingService) GetPaymentStatus(orderID string) (*PaymentStatusResult,
 		return &PaymentStatusResult{Status: "pending"}, nil
 	}
 }
+
+type BookingDetail struct {
+	BookingID   uuid.UUID  `json:"booking_id"`
+	Status      string     `json:"status"`
+	TotalAmount float64    `json:"total_amount"`
+	ShowID      uuid.UUID  `json:"show_id"`
+	Seats       []SeatItem `json:"seats"`
+	CreatedAt   time.Time  `json:"created_at"`
+}
+
+func (s *BookingService) GetBookingDetail(bookingID, userID uuid.UUID) (*BookingDetail, error) {
+	booking, err := s.Repo.GetBookingByID(bookingID)
+	if err != nil {
+		return nil, errors.New("booking not found")
+	}
+	if booking.UserID != userID {
+		return nil, errors.New("not authorized to view this booking")
+	}
+
+	showSeats, err := s.Repo.GetSeatsByIds(booking.ShowID, booking.SeatIDs)
+	if err != nil {
+		return nil, err
+	}
+
+	var items []SeatItem
+	for _, seat := range showSeats {
+		items = append(items, SeatItem{
+			SeatID:     seat.SeatID,
+			SeatNumber: seat.SeatNumber,
+			SeatType:   seat.SeatType,
+			Price:      seat.SeatPrice,
+		})
+	}
+
+	return &BookingDetail{
+		BookingID:   booking.ID,
+		Status:      string(booking.Status),
+		TotalAmount: booking.TotalAmount,
+		ShowID:      booking.ShowID,
+		Seats:       items,
+		CreatedAt:   booking.CreatedAt,
+	}, nil
+}

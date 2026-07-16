@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>GoShow — admin</title>
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    .admin-shell { display: flex; min-height: calc(100vh - 70px); }
+    .admin-nav {
+      width: 200px;
+      border-right: 1px solid var(--stage-line);
+      padding: 32px 0;
+      flex-shrink: 0;
+    }
+    .admin-nav button {
+      display: block;
+      width: 100%;
+      text-align: left;
+      background: none;
+      border: none;
+      color: var(--ash);
+      font-family: var(--body);
+      font-weight: 600;
+      padding: 12px 28px;
+      cursor: pointer;
+      border-left: 2px solid transparent;
+    }
+    .admin-nav button.active { color: var(--marquee); border-left-color: var(--marquee); background: var(--stage-raised); }
+    .admin-panel { flex: 1; padding: 32px 40px; max-width: 640px; }
+    .panel-section { display: none; }
+    .panel-section.active { display: block; }
+    .field { margin-bottom: 16px; }
+    .field label {
+      display: block;
+      font-size: 0.8rem;
+      color: var(--ash);
+      margin-bottom: 6px;
+      font-family: var(--mono);
+    }
+    .field-row { display: flex; gap: 12px; }
+    .field-row .field { flex: 1; }
+    .layout-block {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+    .layout-block select, .layout-block input { flex: 1; }
+    .remove-btn {
+      background: none; border: 1px solid var(--velvet); color: var(--velvet);
+      border-radius: 6px; width: 32px; height: 32px; cursor: pointer; flex-shrink: 0;
+    }
+    .entity-list { margin-top: 32px; }
+    .entity-row {
+      display: flex; justify-content: space-between;
+      padding: 10px 0; border-bottom: 1px solid var(--stage-line);
+      font-size: 0.9rem;
+    }
+    .entity-row span:last-child { color: var(--ash); font-family: var(--mono); font-size: 0.8rem; }
+  </style>
+</head>
+<body>
+
+  <main class="admin-shell">
+    <nav class="admin-nav">
+      <button class="active" data-panel="theatres">Theatres</button>
+      <button data-panel="screens">Screens</button>
+      <button data-panel="movies">Movies</button>
+      <button data-panel="shows">Shows</button>
+    </nav>
+
+    <div class="admin-panel">
+      <div id="alert-slot"></div>
+
+      <!-- THEATRES -->
+      <section class="panel-section active" id="panel-theatres">
+        <h2>Add a theatre</h2>
+        <form id="theatre-form">
+          <div class="field"><label>Name</label><input class="gs-input" name="name" required></div>
+          <div class="field-row">
+            <div class="field"><label>City</label><input class="gs-input" name="city" required></div>
+            <div class="field"><label>Area</label><input class="gs-input" name="area" required></div>
+          </div>
+          <div class="field"><label>Address</label><input class="gs-input" name="address" required></div>
+          <button class="btn btn-marquee" type="submit">Create theatre</button>
+        </form>
+        <div class="entity-list" id="theatre-list"></div>
+      </section>
+
+      <!-- SCREENS -->
+      <section class="panel-section" id="panel-screens">
+        <h2>Add a screen</h2>
+        <form id="screen-form">
+          <div class="field">
+            <label>Theatre</label>
+            <select class="gs-select" id="screen-theatre-select" required></select>
+          </div>
+          <div class="field"><label>Screen name</label><input class="gs-input" name="screen_name" placeholder="Screen 1" required></div>
+
+          <label style="font-size:0.8rem; color:var(--ash); font-family:var(--mono);">Seat layout</label>
+          <div id="layout-rows"></div>
+          <button type="button" class="btn btn-outline" id="add-layout-row" style="margin: 10px 0 20px;">+ Add row block</button>
+          <br>
+          <button class="btn btn-marquee" type="submit">Create screen</button>
+        </form>
+      </section>
+
+      <!-- MOVIES -->
+      <section class="panel-section" id="panel-movies">
+        <h2>Add a movie</h2>
+        <form id="movie-form">
+          <div class="field"><label>Title</label><input class="gs-input" name="title" required></div>
+          <div class="field"><label>Description</label><input class="gs-input" name="description"></div>
+          <div class="field-row">
+            <div class="field"><label>Genre</label><input class="gs-input" name="genre"></div>
+            <div class="field"><label>Language</label><input class="gs-input" name="language"></div>
+          </div>
+          <div class="field-row">
+            <div class="field"><label>Duration (minutes)</label><input class="gs-input" type="number" name="durationminutes" required></div>
+            <div class="field"><label>Release date</label><input class="gs-input" type="date" name="releasedate"></div>
+          </div>
+          <div class="field"><label>Poster URL</label><input class="gs-input" name="posterurl"></div>
+          <button class="btn btn-marquee" type="submit">Create movie</button>
+        </form>
+        <div class="entity-list" id="movie-list"></div>
+      </section>
+
+      <!-- SHOWS -->
+      <section class="panel-section" id="panel-shows">
+        <h2>Schedule a show</h2>
+        <p style="margin-bottom:18px;">Creates this showtime every day for the next 15 days.</p>
+        <form id="show-form">
+          <div class="field">
+            <label>Movie</label>
+            <select class="gs-select" id="show-movie-select" required></select>
+          </div>
+          <div class="field">
+            <label>Theatre</label>
+            <select class="gs-select" id="show-theatre-select" required></select>
+          </div>
+          <div class="field">
+            <label>Screen</label>
+            <select class="gs-select" id="show-screen-select" required>
+              <option value="">Pick a theatre first</option>
+            </select>
+          </div>
+          <div class="field-row">
+            <div class="field"><label>Start time (first day)</label><input class="gs-input" type="datetime-local" name="starttime" required></div>
+            <div class="field"><label>End time (first day)</label><input class="gs-input" type="datetime-local" name="endtime" required></div>
+          </div>
+          <div class="field-row">
+            <div class="field"><label>Regular price</label><input class="gs-input" type="number" name="regular_price" required></div>
+            <div class="field"><label>Premium price</label><input class="gs-input" type="number" name="premium_price" required></div>
+            <div class="field"><label>VIP price</label><input class="gs-input" type="number" name="vip_price" required></div>
+          </div>
+          <button class="btn btn-marquee" type="submit">Schedule show</button>
+        </form>
+      </section>
+    </div>
+  </main>
+
+  <script src="js/api.js"></script>
+  <script src="js/navbar.js"></script>
+  <script>
+    const currentUser = JSON.parse(localStorage.getItem("gs_user") || "null");
+
+    if (!isLoggedIn() || !currentUser || currentUser.role !== "admin") {
+      document.body.innerHTML = `
+        <main class="gs-container" style="text-align:center; padding-top:80px;">
+          <h2>Admins only</h2>
+          <p style="margin-top:10px;">You need an admin account to view this page.</p>
+          <a href="movies.html" class="btn btn-marquee" style="margin-top:24px; display:inline-flex;">Back to movies</a>
+        </main>`;
+      throw new Error("not an admin"); // stop the rest of this script from running
+    }
+
+    // ---------- panel switching ----------
+    document.querySelectorAll(".admin-nav button").forEach(btn => {
+      btn.addEventListener("click", () => {
+        document.querySelectorAll(".admin-nav button").forEach(b => b.classList.remove("active"));
+        document.querySelectorAll(".panel-section").forEach(p => p.classList.remove("active"));
+        btn.classList.add("active");
+        document.getElementById(`panel-${btn.dataset.panel}`).classList.add("active");
+      });
+    });
+
+    function showAlert(message, ok = false) {
+      document.getElementById("alert-slot").innerHTML =
+        `<div class="gs-alert ${ok ? "ok" : "error"}">${message}</div>`;
+      setTimeout(() => (document.getElementById("alert-slot").innerHTML = ""), 4000);
+    }
+
+    function formToObject(form) {
+      const obj = {};
+      new FormData(form).forEach((value, key) => {
+        obj[key] = isNaN(value) || value === "" ? value : Number(value);
+      });
+      return obj;
+    }
+
+    function fillSelect(selectEl, items, placeholder) {
+      selectEl.innerHTML =
+        `<option value="" disabled selected>${placeholder}</option>` +
+        items.map(opt => `<option value="${opt.value}">${opt.label}</option>`).join("");
+    }
+
+    // ---------- theatres ----------
+    let allTheatres = [];
+
+    async function loadTheatres() {
+      try {
+        allTheatres = await apiFetch("/theatres/all");
+
+        document.getElementById("theatre-list").innerHTML = allTheatres.map(t => `
+          <div class="entity-row"><span>${t.Name}</span><span>${t.City}</span></div>
+        `).join("");
+
+        const theatreOptions = allTheatres.map(t => ({ value: t.ID, label: `${t.Name} — ${t.City}` }));
+        fillSelect(document.getElementById("screen-theatre-select"), theatreOptions, "Choose a theatre");
+        fillSelect(document.getElementById("show-theatre-select"), theatreOptions, "Choose a theatre");
+      } catch (err) {
+        showAlert(err.message);
+      }
+    }
+
+    const theatreForm = document.getElementById("theatre-form");
+    theatreForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      try {
+        await apiFetch("/theatres", { method: "POST", body: JSON.stringify(formToObject(theatreForm)) });
+        showAlert("Theatre created.", true);
+        theatreForm.reset();
+        loadTheatres();
+      } catch (err) { showAlert(err.message); }
+    });
+
+    // ---------- screens ----------
+    let layoutRowCount = 0;
+    function addLayoutRow() {
+      layoutRowCount++;
+      const div = document.createElement("div");
+      div.className = "layout-block";
+      div.innerHTML = `
+        <select class="gs-select seat-type">
+          <option value="regular">Regular</option>
+          <option value="premium">Premium</option>
+          <option value="vip">VIP</option>
+        </select>
+        <input class="gs-input rows-input" type="number" placeholder="Rows" min="1" required>
+        <input class="gs-input per-row-input" type="number" placeholder="Seats/row" min="1" required>
+        <button type="button" class="remove-btn">×</button>
+      `;
+      div.querySelector(".remove-btn").addEventListener("click", () => div.remove());
+      document.getElementById("layout-rows").appendChild(div);
+    }
+    document.getElementById("add-layout-row").addEventListener("click", addLayoutRow);
+    addLayoutRow(); // start with one block
+
+    const screenForm = document.getElementById("screen-form");
+    screenForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const layout = Array.from(document.querySelectorAll(".layout-block")).map(block => ({
+        seat_type: block.querySelector(".seat-type").value,
+        rows: Number(block.querySelector(".rows-input").value),
+        seats_per_row: Number(block.querySelector(".per-row-input").value),
+      }));
+
+      const payload = {
+        theatre_id: document.getElementById("screen-theatre-select").value,
+        screen_name: screenForm.screen_name.value,
+        layout,
+      };
+
+      try {
+        await apiFetch("/screens", { method: "POST", body: JSON.stringify(payload) });
+        showAlert("Screen created with seat layout.", true);
+        screenForm.reset();
+      } catch (err) { showAlert(err.message); }
+    });
+
+    // ---------- movies ----------
+    async function loadMovies() {
+      try {
+        const movies = await apiFetch("/movies/all");
+
+        document.getElementById("movie-list").innerHTML = movies.map(m => `
+          <div class="entity-row"><span>${m.Title}</span><span>${m.Language}</span></div>
+        `).join("");
+
+        fillSelect(
+          document.getElementById("show-movie-select"),
+          movies.map(m => ({ value: m.ID, label: m.Title })),
+          "Choose a movie"
+        );
+      } catch (err) {
+        showAlert(err.message);
+      }
+    }
+
+    const movieForm = document.getElementById("movie-form");
+    movieForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const payload = formToObject(movieForm);
+      if (payload.releasedate) payload.releasedate = new Date(payload.releasedate).toISOString();
+      try {
+        await apiFetch("/movies", { method: "POST", body: JSON.stringify(payload) });
+        showAlert("Movie added.", true);
+        movieForm.reset();
+        loadMovies();
+      } catch (err) { showAlert(err.message); }
+    });
+
+    // ---------- shows: theatre -> screens cascade ----------
+    document.getElementById("show-theatre-select").addEventListener("change", async (e) => {
+      const theatreId = e.target.value;
+      const screenSelect = document.getElementById("show-screen-select");
+      screenSelect.innerHTML = `<option value="">Loading…</option>`;
+
+      try {
+        const screens = await apiFetch(`/theatres/${theatreId}/screens`);
+        fillSelect(
+          screenSelect,
+          screens.map(s => ({ value: s.ID, label: s.ScreenName })),
+          "Choose a screen"
+        );
+      } catch (err) {
+        showAlert(err.message);
+      }
+    });
+
+    const showForm = document.getElementById("show-form");
+    showForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const payload = {
+        movieid: document.getElementById("show-movie-select").value,
+        screenid: document.getElementById("show-screen-select").value,
+        starttime: new Date(showForm.starttime.value).toISOString(),
+        endtime: new Date(showForm.endtime.value).toISOString(),
+        regular_price: Number(showForm.regular_price.value),
+        premium_price: Number(showForm.premium_price.value),
+        vip_price: Number(showForm.vip_price.value),
+      };
+      try {
+        await apiFetch("/shows", { method: "POST", body: JSON.stringify(payload) });
+        showAlert("Show scheduled for the next 15 days.", true);
+        showForm.reset();
+      } catch (err) { showAlert(err.message); }
+    });
+
+    // ---------- initial load ----------
+    loadTheatres();
+    loadMovies();
+  </script>
+</body>
+</html>

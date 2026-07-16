@@ -46,96 +46,108 @@
   <script>
     if (!isLoggedIn()) {
       window.location.href = `login.html?next=checkout.html${window.location.search}`;
-    }
+    } else {
+      const params = new URLSearchParams(window.location.search);
+      const showId = params.get("show_id");
+      const payBtn = document.getElementById("pay-btn");
+      let currentAmount = 0;
 
-    const params = new URLSearchParams(window.location.search);
-    const showId = params.get("show_id");
-    const payBtn = document.getElementById("pay-btn");
-    let currentAmount = 0;
+      const showAlert = (message) => {
+        document.getElementById("alert-slot").innerHTML =
+          `<div class="gs-alert error">${message}</div>`;
+      };
 
-    function showAlert(message) {
-      document.getElementById("alert-slot").innerHTML =
-        `<div class="gs-alert error">${message}</div>`;
-    }
+      const resetPayButton = () => {
+        payBtn.disabled = false;
+        payBtn.textContent = `Pay ₹${currentAmount}`;
+      };
 
-    function resetPayButton() {
-      payBtn.disabled = false;
-      payBtn.textContent = `Pay ₹${currentAmount}`;
-    }
+      const loadSummary = async () => {
+        if (!showId) { window.location.href = "index.html"; return; }
 
-    async function loadSummary() {
-      if (!showId) { window.location.href = "index.html"; return; }
+        try {
+          const summary = await getCheckoutSummary(showId);
+          currentAmount = summary.total_amount;
 
-      try {
-        const summary = await getCheckoutSummary(showId);
-        currentAmount = summary.total_amount;
+          document.getElementById("ticket").style.display = "flex";
+          document.getElementById("seat-count-label").textContent =
+            `${summary.seats.length} seat${summary.seats.length > 1 ? "s" : ""}`;
+          document.getElementById("seat-list").innerHTML = summary.seats.map(s => `
+            <div class="seat-item">
+              <span>${s.seat_number} · ${s.seat_type}</span>
+              <span>₹${s.price}</span>
+            </div>
+          `).join("");
+          document.getElementById("total-amount").textContent = `₹${summary.total_amount}`;
 
-        document.getElementById("ticket").style.display = "flex";
-        document.getElementById("seat-count-label").textContent =
-          `${summary.seats.length} seat${summary.seats.length > 1 ? "s" : ""}`;
-        document.getElementById("seat-list").innerHTML = summary.seats.map(s => `
-          <div class="seat-item">
-            <span>${s.seat_number} · ${s.seat_type}</span>
-            <span>₹${s.price}</span>
-          </div>
-        `).join("");
-        document.getElementById("total-amount").textContent = `₹${summary.total_amount}`;
-
-        resetPayButton();
-      } catch (err) {
-        showAlert(err.message);
-        payBtn.textContent = "Nothing to pay for";
-      }
-    }
-
-    payBtn.addEventListener("click", async () => {
-      payBtn.disabled = true;
-      payBtn.textContent = "Processing…";
-
-      try {
-        const order = await initiateCheckout(showId);
-
-        if (order.expired) {
-          showAlert("Your seat hold expired. Taking you back to browse movies.");
-          setTimeout(() => (window.location.href = "movies.html"), 2000);
-          return;
+          resetPayButton();
+        } catch (err) {
+          showAlert(err.message);
+          payBtn.textContent = "Nothing to pay for";
         }
+      };
 
-        const rzp = new Razorpay({
-          key: order.razorpay_key_id,
-          order_id: order.razorpay_order_id,
-          amount: order.amount * 100,
-          currency: "INR",
-          name: "GoShow",
-          description: "Movie ticket booking",
-          theme: { color: "#e8b23d" },
-          handler: async function (response) {
-            await paymentCallback({
-              razorpay_order_id: response.razorpay_order_id,
-              razorpay_payment_id: response.razorpay_payment_id,
-              razorpay_signature: response.razorpay_signature,
-            });
-            window.location.href = `payment-waiting.html?order_id=${response.razorpay_order_id}`;
-          },
-          modal: { ondismiss: resetPayButton },
-        });
+      payBtn.addEventListener("click", async () => {
+        payBtn.disabled = true;
+        payBtn.textContent = "Processing…";
 
-        rzp.on("payment.failed", async (response) => {
-          await paymentCallback({
-            error: true,
-            razorpay_order_id: response.error.metadata.order_id,
+        try {
+          const order = await initiateCheckout(showId);
+
+          if (order.expired) {
+            showAlert("Your seat hold expired. Taking you back to browse movies.");
+            setTimeout(() => (window.location.href = "movies.html"), 2000);
+            return;
+          }
+
+          const rzp = new Razorpay({
+            key: order.razorpay_key_id,
+            order_id: order.razorpay_order_id,
+            amount: order.amount * 100,
+            currency: "INR",
+            name: "GoShow",
+            description: "Movie ticket booking",
+            theme: { color: "#e8b23d" },
+            handler: async function (response) {
+              const result = await paymentCallback({
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_signature: response.razorpay_signature,
+              });
+
+              if (result.success) {
+                window.location.href = `booking.html?booking_id=${result.booking_id}`;
+              } else {
+                showAlert(result.message || "We couldn't confirm your payment. Please contact support.");
+              }
+            },
+            modal: { ondismiss: resetPayButton },
           });
-          window.location.href = `payment-waiting.html?order_id=${response.error.metadata.order_id}`;
-        });
 
-        rzp.open();
-      } catch (err) {
-        showAlert(err.message);
-        resetPayButton();
-      }
-    });
+          rzp.on("payment.failed", async (response) => {
+            const result = await paymentCallback({
+              error: true,
+              razorpay_order_id: response.error.metadata.order_id,
+            });
 
-    loadSummary();
+            if (result.can_retry) {
+              showAlert("Payment didn't go through. You can try again.");
+              resetPayButton();
+            } else {
+              showAlert("Your payment window expired. Taking you back to browse movies.");
+              setTimeout(() => (window.location.href = "movies.html"), 2000);
+            }
+          });
+
+          rzp.open();
+        } catch (err) {
+          showAlert(err.message);
+          resetPayButton();
+        }
+      });
+
+      loadSummary();
+    }
   </script>
 </body>
 </html>

@@ -14,6 +14,7 @@ func RegisterBookingRoutes(router *gin.RouterGroup, bookingHandler *handlers.Boo
 	bookings.POST("/checkout", bookingHandler.InitiateCheckout)
 	bookings.POST("/payment-callback", bookingHandler.PaymentCallback)
 	bookings.GET("/payment-status/:order_id", bookingHandler.GetPaymentStatus)
+	bookings.GET("/:id", bookingHandler.GetBookingDetail)
 
 	// webhook stays PUBLIC — Razorpay calls this directly, no user token exists
 	router.POST("/bookings/webhook/razorpay", bookingHandler.RazorpayWebhook)
