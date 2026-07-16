@@ -68,7 +68,7 @@ func (h *ShowHandler) GetShowByMovie(c *gin.Context) {
 }
 
 func (h *ShowHandler) GetShowByMovieCity(c *gin.Context) {
-	movieid := c.Param("movie_id")
+	movieid := c.Param("id")
 	city := c.Query("city")
 	date := c.Query("date")
 

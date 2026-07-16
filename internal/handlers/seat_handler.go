@@ -17,7 +17,7 @@ func NewSeatHandler(service *services.SeatService) *SeatHandler {
 }
 
 func (h *SeatHandler) GetSeatsByScreen(c *gin.Context) {
-	screenID := c.Param("screen_id")
+	screenID := c.Param("id")
 	seats, err := h.Service.GetSeatsByScreen(screenID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})

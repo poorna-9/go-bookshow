@@ -7,5 +7,5 @@ import (
 
 func RegisterSeatRoutes(router *gin.RouterGroup, seatHandler *handlers.SeatHandler) {
 	screens := router.Group("/screens")
-	screens.GET("/:screen_id/seats", seatHandler.GetSeatsByScreen)
+	screens.GET("/:id/seats", seatHandler.GetSeatsByScreen)
 }

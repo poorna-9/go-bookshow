@@ -13,5 +13,5 @@ func RegisterScreenRoutes(router *gin.RouterGroup, screenHandler *handlers.Scree
 	screens.DELETE("/:id", middleware.RequireAuth(jwtSecret), middleware.RequireAdmin(), screenHandler.DeactivateScreen)
 
 	theatres := router.Group("/theatres")
-	theatres.GET("/:theatre_id/screens", screenHandler.GetScreensByTheatre)
+	theatres.GET("/:id/screens", screenHandler.GetScreensByTheatre)
 }

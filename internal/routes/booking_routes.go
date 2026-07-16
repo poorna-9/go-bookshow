@@ -21,5 +21,5 @@ func RegisterBookingRoutes(router *gin.RouterGroup, bookingHandler *handlers.Boo
 
 	shows := router.Group("/shows")
 	shows.Use(middleware.RequireAuth(jwtSecret))
-	shows.GET("/:show_id/reserved-slots", bookingHandler.GetReservedSlots)
+	shows.GET("/:id/reserved-slots", bookingHandler.GetReservedSlots)
 }

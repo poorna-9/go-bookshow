@@ -13,5 +13,5 @@ func RegisterShowRoutes(router *gin.RouterGroup, showHandler *handlers.ShowHandl
 	shows.PUT("/:id", middleware.RequireAuth(jwtSecret), middleware.RequireAdmin(), showHandler.UpdateShow)
 
 	movies := router.Group("/movies")
-	movies.GET("/:movie_id/shows", showHandler.GetShowByMovieCity)
+	movies.GET("/:id/shows", showHandler.GetShowByMovieCity)
 }

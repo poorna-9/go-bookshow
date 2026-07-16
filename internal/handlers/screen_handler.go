@@ -38,8 +38,7 @@ func (h *ScreenHandler) CreateScreen(c *gin.Context) {
 }
 
 func (h *ScreenHandler) GetScreensByTheatre(c *gin.Context) {
-	theatreID := c.Param("theatre_id")
-
+	theatreID := c.Param("id")
 	screens, err := h.Service.GetScreensByTheatre(theatreID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})

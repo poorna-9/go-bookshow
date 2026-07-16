@@ -141,7 +141,7 @@ func (h *BookingHandler) ReserveSlot(c *gin.Context) {
 }
 
 func (h *BookingHandler) GetReservedSlots(c *gin.Context) {
-	showID, err := uuid.Parse(c.Param("show_id"))
+	showID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid show_id"})
 		return
