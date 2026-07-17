@@ -393,3 +393,29 @@ func (r *BookingRepository) FindStalePendingPayments() ([]models.Payment, error)
 	err := r.DB.Where("status = ? AND expires_at < ?", models.PaymentPending, time.Now()).Find(&payments).Error
 	return payments, err
 }
+
+func (r *BookingRepository) AreSeatsAvailable(showID uuid.UUID, seatIDs []uuid.UUID) (bool, error) {
+	var count int64
+	err := r.DB.Model(&models.ShowSeat{}).
+		Where("show_id = ? AND seat_id IN ? AND available = ?", showID, seatIDs, false).
+		Count(&count).Error
+	if err != nil {
+		return false, err
+	}
+	return count == 0, nil
+}
+
+func (r *BookingRepository) GetSessionByID(sessionID uuid.UUID) (*models.BookingSession, error) {
+	var session models.BookingSession
+	err := r.DB.First(&session, "id = ?", sessionID).Error
+	if err != nil {
+		return nil, err
+	}
+	return &session, nil
+}
+
+func (r *BookingRepository) MarkPaymentRefundRequired(paymentID uuid.UUID) error {
+	return r.DB.Model(&models.Payment{}).
+		Where("id = ?", paymentID).
+		Update("status", models.PaymentRefundRequired).Error
+}

@@ -289,6 +289,25 @@ func (s *BookingService) FinalizePayment(orderID, razorpayPaymentID string) (*mo
 		return s.Repo.GetBookingBySessionID(payment.SessionID)
 	}
 
+	session, err := s.Repo.GetSessionByID(payment.SessionID)
+	if err != nil {
+		return nil, err
+	}
+
+	stillAvailable, err := s.Repo.AreSeatsAvailable(payment.ShowID, session.SessionSeats)
+	if err != nil {
+		return nil, err
+	}
+
+	if !stillAvailable {
+		if err := s.Repo.MarkPaymentRefundRequired(payment.ID); err != nil {
+			return nil, err
+		}
+		// TODO: trigger an actual Razorpay refund here once ready —
+		// r.RZP.Payment.Refund(razorpayPaymentID, nil, nil)
+		return nil, errors.New("seats were taken by someone else before payment confirmed — refund required")
+	}
+
 	return s.Repo.Finalizetx(payment, razorpayPaymentID)
 }
 

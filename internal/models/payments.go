@@ -9,9 +9,10 @@ import (
 type PaymentStatus string
 
 const (
-	PaymentPending PaymentStatus = "pending"
-	PaymentSuccess PaymentStatus = "success"
-	PaymentFailed  PaymentStatus = "failed"
+	PaymentPending        PaymentStatus = "pending"
+	PaymentSuccess        PaymentStatus = "success"
+	PaymentFailed         PaymentStatus = "failed"
+	PaymentRefundRequired PaymentStatus = "refund_required"
 )
 
 type Payment struct {

@@ -120,7 +120,10 @@
             <div class="field"><label>Duration (minutes)</label><input class="gs-input" type="number" name="durationminutes" required></div>
             <div class="field"><label>Release date</label><input class="gs-input" type="date" name="releasedate"></div>
           </div>
-          <div class="field"><label>Poster URL</label><input class="gs-input" name="posterurl"></div>
+          <div class="field">
+            <label>Poster image</label>
+            <input class="gs-input" type="file" id="poster-file" accept="image/*">
+          </div>
           <button class="btn btn-marquee" type="submit">Create movie</button>
         </form>
         <div class="entity-list" id="movie-list"></div>
@@ -172,7 +175,7 @@
           <p style="margin-top:10px;">You need an admin account to view this page.</p>
           <a href="/movies" class="btn btn-marquee" style="margin-top:24px; display:inline-flex;">Back to movies</a>
         </main>`;
-      throw new Error("not an admin"); // stop the rest of this script from running
+      throw new Error("not an admin");
     }
 
     // ---------- panel switching ----------
@@ -200,28 +203,20 @@
     }
 
     function fillSelect(selectEl, items, placeholder) {
-    selectEl.innerHTML = "";
+      selectEl.innerHTML = "";
+      const placeholderOption = document.createElement("option");
+      placeholderOption.value = "";
+      placeholderOption.textContent = placeholder;
+      placeholderOption.disabled = true;
+      placeholderOption.selected = true;
+      selectEl.appendChild(placeholderOption);
 
-    const placeholderOption = document.createElement("option");
-    placeholderOption.value = "";
-    placeholderOption.textContent = placeholder;
-    placeholderOption.disabled = true;
-    placeholderOption.selected = true;
-    selectEl.appendChild(placeholderOption);
-
-    items.forEach(item => {
-        console.log(item); // DEBUG
-
+      items.forEach(item => {
         const option = document.createElement("option");
         option.value = item.value;
         option.textContent = item.label;
-
-        console.log("option.value =", option.value);
-
         selectEl.appendChild(option);
-    });
-
-    console.log(selectEl.innerHTML);
+      });
     }
 
     // ---------- theatres ----------
@@ -232,10 +227,10 @@
         allTheatres = await apiFetch("/theatres/all");
 
         document.getElementById("theatre-list").innerHTML = allTheatres.map(t => `
-          <div class="entity-row"><span>${t.name}</span><span>${t.city}</span></div>
+          <div class="entity-row"><span>${t.Name}</span><span>${t.City}</span></div>
         `).join("");
 
-        const theatreOptions = allTheatres.map(t => ({ value: t.id, label: `${t.name} — ${t.city}` }));
+        const theatreOptions = allTheatres.map(t => ({ value: t.ID, label: `${t.Name} — ${t.City}` }));
         fillSelect(document.getElementById("screen-theatre-select"), theatreOptions, "Choose a theatre");
         fillSelect(document.getElementById("show-theatre-select"), theatreOptions, "Choose a theatre");
       } catch (err) {
@@ -274,7 +269,7 @@
       document.getElementById("layout-rows").appendChild(div);
     }
     document.getElementById("add-layout-row").addEventListener("click", addLayoutRow);
-    addLayoutRow(); // start with one block
+    addLayoutRow();
 
     const screenForm = document.getElementById("screen-form");
     screenForm.addEventListener("submit", async (e) => {
@@ -290,8 +285,6 @@
         screen_name: screenForm.screen_name.value,
         layout,
       };
-      console.log("Selected theatre:", document.getElementById("screen-theatre-select").value);
-      console.log("Payload:", payload);
 
       try {
         await apiFetch("/screens", { method: "POST", body: JSON.stringify(payload) });
@@ -306,7 +299,7 @@
         const movies = await apiFetch("/movies/all");
 
         document.getElementById("movie-list").innerHTML = movies.map(m => `
-          <div class="entity-row"><span>${m.title}</span><span>${m.language}</span></div>
+          <div class="entity-row"><span>${m.Title}</span><span>${m.Language}</span></div>
         `).join("");
 
         fillSelect(
@@ -324,8 +317,26 @@
       e.preventDefault();
       const payload = formToObject(movieForm);
       if (payload.releasedate) payload.releasedate = new Date(payload.releasedate).toISOString();
+
       try {
-        await apiFetch("/movies", { method: "POST", body: JSON.stringify(payload) });
+        const movie = await apiFetch("/movies", { method: "POST", body: JSON.stringify(payload) });
+
+        const fileInput = document.getElementById("poster-file");
+        if (fileInput.files.length > 0) {
+          const posterData = new FormData();
+          posterData.append("poster", fileInput.files[0]);
+
+          const uploadRes = await fetch(`${API_BASE}/movies/${movie.ID}/poster`, {
+            method: "POST",
+            headers: { Authorization: `Bearer ${getToken()}` },
+            body: posterData,
+          });
+          if (!uploadRes.ok) {
+            const errBody = await uploadRes.json().catch(() => ({}));
+            throw new Error(errBody.error || "Movie created, but poster upload failed.");
+          }
+        }
+
         showAlert("Movie added.", true);
         movieForm.reset();
         loadMovies();
@@ -334,29 +345,20 @@
 
     // ---------- shows: theatre -> screens cascade ----------
     document.getElementById("show-theatre-select").addEventListener("change", async (e) => {
-    const theatreId = e.target.value;
-    console.log("Selected theatre:", theatreId);
+      const theatreId = e.target.value;
+      const screenSelect = document.getElementById("show-screen-select");
 
-    const screenSelect = document.getElementById("show-screen-select");
-
-    try {
+      try {
         const screens = await apiFetch(`/theatres/${theatreId}/screens`);
-
-        console.log("Screens:", screens);
-
-        const items = screens.map(s => ({
-            value: s.ID,
-            label: s.ScreenName,
-        }));
-
-        console.log("Items:", items);
-
-        fillSelect(screenSelect, items, "Choose a screen");
-    } catch (err) {
-        console.error(err);
+        fillSelect(
+          screenSelect,
+          screens.map(s => ({ value: s.ID, label: s.ScreenName })),
+          "Choose a screen"
+        );
+      } catch (err) {
         showAlert(err.message);
-    }
-});
+      }
+    });
 
     const showForm = document.getElementById("show-form");
     showForm.addEventListener("submit", async (e) => {
