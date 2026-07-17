@@ -46,7 +46,7 @@ func (h *MovieHandler) GetMovieById(c *gin.Context) {
 }
 
 func (h *MovieHandler) GetMovieByCity(c *gin.Context) {
-	city := c.Param("city")
+	city := c.Query("city")
 	movies, err := h.Service.GetMovieByCity(city)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})

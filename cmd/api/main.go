@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/driver/postgres"
@@ -15,6 +16,14 @@ import (
 	"github.com/poorna-9/goshow/internal/services"
 )
 
+func startCleanupWorker(bookingService *services.BookingService) {
+	ticker := time.NewTicker(1 * time.Minute)
+	go func() {
+		for range ticker.C {
+			bookingService.SweepStaleBookings()
+		}
+	}()
+}
 func main() {
 	cfg := config.Load()
 
@@ -92,6 +101,7 @@ func main() {
 		Booking: bookingHandler,
 		Auth:    authHandler,
 	}, cfg.JWTSecret)
+	startCleanupWorker(bookingService)
 
 	log.Printf("starting server on :%s", cfg.AppPort)
 	router.Run(":" + cfg.AppPort)

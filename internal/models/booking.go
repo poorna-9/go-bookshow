@@ -33,5 +33,6 @@ type BookingSession struct {
 	ShowID       uuid.UUID
 	Expired      bool
 	Success      bool
-	SessionSeats []uuid.UUID
+	SessionSeats []uuid.UUID `gorm:"serializer:json"`
+	CreatedAt    time.Time
 }

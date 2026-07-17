@@ -33,6 +33,7 @@
       <div class="field"><label>Email</label><input class="gs-input" type="email" name="email" required></div>
       <div class="field"><label>Phone</label><input class="gs-input" name="phone"></div>
       <div class="field"><label>Password</label><input class="gs-input" type="password" name="password" minlength="6" required></div>
+      <div class="field"><label>AdminCode</label><input class="gs-input" name="admincode"></div>
       <button class="btn btn-marquee btn-block" type="submit" style="margin-top:8px;">Create account</button>
     </form>
 
@@ -52,6 +53,7 @@
             email: form.email.value,
             phone: form.phone.value,
             password: form.password.value,
+            admin_code: form.admincode.value,
           }),
         });
         localStorage.setItem("gs_token", result.token);

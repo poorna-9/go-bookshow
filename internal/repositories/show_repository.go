@@ -57,13 +57,26 @@ func (r *ShowRepository) Update(show *models.Show) error {
 
 func (r *ShowRepository) FindByMovieAndCity(movieid string, city string, date string) ([]ShowTheatre, error) {
 	var result []ShowTheatre
+
 	err := r.db.
 		Table("shows").
-		Select("shows.id as show_id, shows.start_time, shows.end_time, shows.base_price, screens.name as screen_name,shows.date as date, theatres.id as theatre_id,theatres.address as Address, theatres.name as theatre_name, theatres.area as theatre_area").
-		Joins("JOIN screens on screens.id = shows.screen_id").
-		Joins("JOIN theatres on theatres.id = screens.theatre_id").
-		Where("shows.movie_id = ? AND theatres.city = ? AND shows.date = ?", movieid, city, date).
+		Select(`
+			shows.id as show_id,
+			shows.start_time,
+			shows.end_time,
+			shows.regular_price as base_price,
+			screens.screen_name as screen_name,
+			shows.date,
+			theatres.id as theatre_id,
+			theatres.address,
+			theatres.name as theatre_name,
+			theatres.area as theatre_area
+		`).
+		Joins("JOIN screens ON screens.id = shows.screen_id").
+		Joins("JOIN theatres ON theatres.id = screens.theatre_id").
+		Where("shows.movie_id = ? AND theatres.city = ? AND shows.date = ? AND shows.start_time > ?", movieid, city, date, time.Now()).
 		Scan(&result).Error
+
 	return result, err
 }
 
@@ -93,6 +106,7 @@ func (r *ShowRepository) CreateBookSeat(showID uuid.UUID) error {
 		}
 
 		showSeats = append(showSeats, models.ShowSeat{
+			ID:         uuid.New(),
 			ShowID:     show.ID,
 			SeatID:     seat.ID,
 			SeatNumber: seat.SeatNumber,
@@ -120,4 +134,13 @@ func (r *ShowRepository) CreateShowsFor15Days(show *models.Show) error {
 		}
 	}
 	return nil
+}
+
+func (r *BookingRepository) GetShowStartTime(showID uuid.UUID) (time.Time, error) {
+	var show models.Show
+	err := r.DB.Select("start_time").First(&show, "id = ?", showID).Error
+	if err != nil {
+		return time.Time{}, err
+	}
+	return show.StartTime, nil
 }

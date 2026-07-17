@@ -2,6 +2,7 @@ package services
 
 import (
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -48,6 +49,10 @@ type UserView struct {
 }
 
 func (s *AuthService) Signup(input SignupInput) (*AuthResult, error) {
+	fmt.Println("====== SIGNUP ======")
+	fmt.Println("input received:", input)
+	fmt.Println("Received AdminCode:", input.AdminCode)
+	fmt.Println("Configured AdminSignupCode:", s.AdminSignupCode)
 	if input.Name == "" || input.Email == "" || input.Password == "" {
 		return nil, errors.New("name, email and password are required")
 	}
@@ -67,7 +72,7 @@ func (s *AuthService) Signup(input SignupInput) (*AuthResult, error) {
 	if input.AdminCode != "" && s.AdminSignupCode != "" && input.AdminCode == s.AdminSignupCode {
 		role = models.RoleAdmin
 	}
-
+	fmt.Println(role)
 	user := &models.User{
 		ID:           uuid.New(),
 		Name:         input.Name,

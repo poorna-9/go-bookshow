@@ -52,6 +52,7 @@ func Load() *Config {
 		RazorpayKeySecret:     getEnv("RAZORPAY_KEY_SECRET", ""),
 		RazorpayWebhookSecret: getEnv("RAZORPAY_WEBHOOK_SECRET", ""),
 		JWTSecret:             getEnv("JWTSECRET", ""),
+		AdminSignupCode:       getEnv("AdminSignupCode", ""),
 	}
 
 }

@@ -23,7 +23,7 @@ func (s *MovieService) CreateMovie(movie *models.Movie) error {
 	if movie.DurationMinutes <= 0 {
 		return errors.New("movie duration should be greater than zero")
 	}
-
+	movie.ID = uuid.New()
 	return s.repo.Create(movie)
 }
 

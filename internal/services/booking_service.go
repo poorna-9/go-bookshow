@@ -12,7 +12,7 @@ import (
 )
 
 const SessionTTL = 15 * time.Minute
-const MaxSlotsPerSession = 10
+const MaxSlotsPerSession = 5
 
 type BookingService struct {
 	Repo          *repositories.BookingRepository
@@ -38,7 +38,14 @@ type CheckoutResult struct {
 func (s *BookingService) ReserveSlot(userID, seatID, showID uuid.UUID) (*ReserveSlotResult, error) {
 
 	activeShowStr, err := s.Repo.GetActivesession_in_redis(userID)
-	if err == nil && activeShowStr != "" && activeShowStr != showID.String() {
+	startTime, err := s.Repo.GetShowStartTime(showID)
+	if err != nil {
+		return nil, errors.New("show not found")
+	}
+	if time.Now().After(startTime) {
+		return nil, errors.New("this show has already started")
+	}
+	if activeShowStr != "" && activeShowStr != showID.String() {
 		oldShowID, parseErr := uuid.Parse(activeShowStr)
 		if parseErr == nil {
 			if err := s.Repo.ReleaseUserSession(userID, oldShowID); err != nil {
@@ -394,4 +401,25 @@ func (s *BookingService) GetBookingDetail(bookingID, userID uuid.UUID) (*Booking
 		Seats:       items,
 		CreatedAt:   booking.CreatedAt,
 	}, nil
+}
+
+func (s *BookingService) SweepStaleBookings() {
+	cutoff := time.Now().Add(-SessionTTL)
+	staleSessions, err := s.Repo.FindStaleSessions(cutoff)
+	if err == nil {
+		for _, session := range staleSessions {
+			seatIDs, _ := s.Repo.GetSessionSeatIDs(session.ID)
+			for _, seatID := range seatIDs {
+				s.Repo.RedisUnblock(session.ID, session.ShowID, seatID)
+			}
+			s.Repo.ExpireSessionTx(session.ID, session.ShowID, seatIDs)
+		}
+	}
+
+	stalePayments, err := s.Repo.FindStalePendingPayments()
+	if err == nil {
+		for _, payment := range stalePayments {
+			s.HandlePaymentCancel(payment.RazorpayOrderID)
+		}
+	}
 }

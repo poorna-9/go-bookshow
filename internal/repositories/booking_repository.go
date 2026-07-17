@@ -381,3 +381,15 @@ func (r *BookingRepository) GetBookingByID(id uuid.UUID) (*models.Booking, error
 	}
 	return &booking, nil
 }
+
+func (r *BookingRepository) FindStaleSessions(older_than time.Time) ([]models.BookingSession, error) {
+	var session []models.BookingSession
+	err := r.DB.Where("expired = ? AND sucess = ? AND created_at < ?", false, false, older_than).Find(&session).Error
+	return session, err
+}
+
+func (r *BookingRepository) FindStalePendingPayments() ([]models.Payment, error) {
+	var payments []models.Payment
+	err := r.DB.Where("status = ? AND expires_at < ?", models.PaymentPending, time.Now()).Find(&payments).Error
+	return payments, err
+}

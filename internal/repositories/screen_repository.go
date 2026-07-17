@@ -63,6 +63,7 @@ func (r *ScreenRepository) CreateSeats(screenID uuid.UUID, layout []SeatLayoutRo
 			rowLabel := string(rune('A' + rowOffset + row))
 			for seatNum := 1; seatNum <= block.SeatsPerRow; seatNum++ {
 				seats = append(seats, models.Seat{
+					ID:         uuid.New(),
 					ScreenID:   screenID,
 					RowLabel:   rowLabel,
 					SeatNumber: fmt.Sprintf("%s%d", rowLabel, seatNum),

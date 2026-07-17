@@ -116,7 +116,7 @@
   <script src="js/booking.js"></script>
   <script>
     if (!isLoggedIn()) {
-      window.location.href = `/login?next=seatmap.html${window.location.search}`;
+      window.location.href = `/login?next=seatmap${window.location.search}`;
     }
 
     const params = new URLSearchParams(window.location.search);

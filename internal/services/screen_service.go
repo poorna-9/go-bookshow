@@ -40,6 +40,7 @@ func (s *ScreenService) CreateScreen(req *CreateScreenRequest) error {
 	}
 
 	screen := &models.Screen{
+		ID:         uuid.New(),
 		TheatreID:  req.TheatreID,
 		ScreenName: req.ScreenName,
 		TotalSeats: totalSeats,

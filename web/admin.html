@@ -200,9 +200,28 @@
     }
 
     function fillSelect(selectEl, items, placeholder) {
-      selectEl.innerHTML =
-        `<option value="" disabled selected>${placeholder}</option>` +
-        items.map(opt => `<option value="${opt.value}">${opt.label}</option>`).join("");
+    selectEl.innerHTML = "";
+
+    const placeholderOption = document.createElement("option");
+    placeholderOption.value = "";
+    placeholderOption.textContent = placeholder;
+    placeholderOption.disabled = true;
+    placeholderOption.selected = true;
+    selectEl.appendChild(placeholderOption);
+
+    items.forEach(item => {
+        console.log(item); // DEBUG
+
+        const option = document.createElement("option");
+        option.value = item.value;
+        option.textContent = item.label;
+
+        console.log("option.value =", option.value);
+
+        selectEl.appendChild(option);
+    });
+
+    console.log(selectEl.innerHTML);
     }
 
     // ---------- theatres ----------
@@ -213,10 +232,10 @@
         allTheatres = await apiFetch("/theatres/all");
 
         document.getElementById("theatre-list").innerHTML = allTheatres.map(t => `
-          <div class="entity-row"><span>${t.Name}</span><span>${t.City}</span></div>
+          <div class="entity-row"><span>${t.name}</span><span>${t.city}</span></div>
         `).join("");
 
-        const theatreOptions = allTheatres.map(t => ({ value: t.ID, label: `${t.Name} — ${t.City}` }));
+        const theatreOptions = allTheatres.map(t => ({ value: t.id, label: `${t.name} — ${t.city}` }));
         fillSelect(document.getElementById("screen-theatre-select"), theatreOptions, "Choose a theatre");
         fillSelect(document.getElementById("show-theatre-select"), theatreOptions, "Choose a theatre");
       } catch (err) {
@@ -271,6 +290,8 @@
         screen_name: screenForm.screen_name.value,
         layout,
       };
+      console.log("Selected theatre:", document.getElementById("screen-theatre-select").value);
+      console.log("Payload:", payload);
 
       try {
         await apiFetch("/screens", { method: "POST", body: JSON.stringify(payload) });
@@ -285,7 +306,7 @@
         const movies = await apiFetch("/movies/all");
 
         document.getElementById("movie-list").innerHTML = movies.map(m => `
-          <div class="entity-row"><span>${m.Title}</span><span>${m.Language}</span></div>
+          <div class="entity-row"><span>${m.title}</span><span>${m.language}</span></div>
         `).join("");
 
         fillSelect(
@@ -313,21 +334,29 @@
 
     // ---------- shows: theatre -> screens cascade ----------
     document.getElementById("show-theatre-select").addEventListener("change", async (e) => {
-      const theatreId = e.target.value;
-      const screenSelect = document.getElementById("show-screen-select");
-      screenSelect.innerHTML = `<option value="">Loading…</option>`;
+    const theatreId = e.target.value;
+    console.log("Selected theatre:", theatreId);
 
-      try {
+    const screenSelect = document.getElementById("show-screen-select");
+
+    try {
         const screens = await apiFetch(`/theatres/${theatreId}/screens`);
-        fillSelect(
-          screenSelect,
-          screens.map(s => ({ value: s.ID, label: s.ScreenName })),
-          "Choose a screen"
-        );
-      } catch (err) {
+
+        console.log("Screens:", screens);
+
+        const items = screens.map(s => ({
+            value: s.ID,
+            label: s.ScreenName,
+        }));
+
+        console.log("Items:", items);
+
+        fillSelect(screenSelect, items, "Choose a screen");
+    } catch (err) {
+        console.error(err);
         showAlert(err.message);
-      }
-    });
+    }
+});
 
     const showForm = document.getElementById("show-form");
     showForm.addEventListener("submit", async (e) => {
