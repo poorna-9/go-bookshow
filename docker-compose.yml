@@ -1,25 +1,55 @@
 services:
   postgres:
     image: postgres:16-alpine
-    container_name: goshow-postgres
+    container_name: bookmyshow-postgres
     environment:
-      POSTGRES_USER: goshow
-      POSTGRES_PASSWORD: goshow
-      POSTGRES_DB: goshow
+      POSTGRES_USER: bookmyshow
+      POSTGRES_PASSWORD: bookmyshow
+      POSTGRES_DB: bookmyshow
     ports:
       - "5432:5432"
     volumes:
-      - goshow_pgdata:/var/lib/postgresql/data
+      - bookmyshow_pgdata:/var/lib/postgresql/data
+
   redis:
-    image : redis:7-alpine
-    container_name: goshow-redis
+    image: redis:7-alpine
+    container_name: bookmyshow-redis
     ports:
-     - "6379:6379"
+      - "6379:6379"
     command: redis-server --appendonly yes
     volumes:
-    - redis_data:/data
+      - redis_data:/data
 
+  app:
+    build: .
+    container_name: bookmyshow-app
+    ports:
+      - "8000:8000" 
+    env_file:
+      - .env         
+    environment:
+      DB_HOST: postgres
+      DB_PORT: "5432"
+      DB_NAME: bookmyshow
+      DB_USER: bookmyshow
+      DB_PASS: bookmyshow
+      REDIS_URL: redis://redis:6379/0
+      REDIS_CACHE_URL: redis://redis:6379/1
+    depends_on:
+      - postgres
+      - redis
+
+  nginx:
+    image: nginx:1.27-alpine
+    container_name: bookmyshow-nginx
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./web:/app/web:ro 
+    depends_on:
+      - app
 
 volumes:
-  goshow_pgdata:
+  bookmyshow_pgdata:
   redis_data:
