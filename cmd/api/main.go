@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"strconv"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -11,6 +12,7 @@ import (
 	"github.com/poorna-9/goshow/internal/config"
 	"github.com/poorna-9/goshow/internal/handlers"
 	"github.com/poorna-9/goshow/internal/models"
+	"github.com/poorna-9/goshow/internal/redisutil"
 	"github.com/poorna-9/goshow/internal/repositories"
 	"github.com/poorna-9/goshow/internal/routes"
 	"github.com/poorna-9/goshow/internal/services"
@@ -41,6 +43,16 @@ func main() {
 	redisClient := config.NewRedisClient(cfg)
 	razorpayClient := config.NewRazorpayClient(cfg)
 
+	if err := redisutil.EnableKeySpaceNotifications(redisClient); err != nil {
+		log.Fatalf("failed to enable redis keyspace notifications: %v", err)
+	}
+	log.Println("redis keyspace notifications enabled")
+
+	redisDB, err := strconv.Atoi(cfg.RedisDB)
+	if err != nil {
+		log.Fatalf("invalid REDIS_DB value: %v", err)
+	}
+	redisutil.StartExpirySubscriber(redisClient, redisDB)
 	theatreRepo := repositories.NewTheatreRepository(db)
 	theatreService := services.NewTheatreService(theatreRepo)
 	theatreHandler := handlers.NewTheatreHandler(theatreService)

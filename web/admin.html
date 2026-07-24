@@ -227,10 +227,10 @@
         allTheatres = await apiFetch("/theatres/all");
 
         document.getElementById("theatre-list").innerHTML = allTheatres.map(t => `
-          <div class="entity-row"><span>${t.Name}</span><span>${t.City}</span></div>
+          <div class="entity-row"><span>${t.name}</span><span>${t.city}</span></div>
         `).join("");
 
-        const theatreOptions = allTheatres.map(t => ({ value: t.ID, label: `${t.Name} — ${t.City}` }));
+        const theatreOptions = allTheatres.map(t => ({ value: t.id, label: `${t.name} — ${t.city}` }));
         fillSelect(document.getElementById("screen-theatre-select"), theatreOptions, "Choose a theatre");
         fillSelect(document.getElementById("show-theatre-select"), theatreOptions, "Choose a theatre");
       } catch (err) {

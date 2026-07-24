@@ -25,6 +25,10 @@ type BookingRepository struct {
 	RazorpayWebhookSecret string
 }
 
+func ShowSeatHashKey(showID uuid.UUID) string {
+	return fmt.Sprintf("show_seats:%s", showID.String())
+}
+
 func NewBookingRepository(db *gorm.DB, rdb *redis.Client, rzp *razorpay.Client, razorpaySecret, razorpayWebhookSecret string) *BookingRepository {
 	return &BookingRepository{
 		DB:                    db,
@@ -52,6 +56,10 @@ func (r *BookingRepository) RedisBlock(bookingSession, showID, seatID uuid.UUID,
 		r.RDB.Del(ctx, lockKey)
 		return err
 	}
+
+	if err := r.RDB.HSet(ctx, ShowSeatHashKey(showID), seatID.String(), "taken:"+bookingSession.String()).Err(); err != nil {
+		fmt.Printf("warning: failed to update seat hash for show %s seat %s: %v\n", showID, seatID, err)
+	}
 	return nil
 }
 
@@ -63,7 +71,13 @@ func (r *BookingRepository) RedisUnblock(bookingSession, showID, seatID uuid.UUI
 	if err := r.RDB.SRem(ctx, sessionKey, seatID.String()).Err(); err != nil {
 		return err
 	}
-	return r.RDB.Del(ctx, lockKey).Err()
+	if err := r.RDB.Del(ctx, lockKey).Err(); err != nil {
+		return err
+	}
+	if err := r.RDB.HSet(ctx, ShowSeatHashKey(showID), seatID.String(), "available").Err(); err != nil {
+		fmt.Printf("warning: failed to update seat hash for show %s seat %s: %v\n", showID, seatID, err)
+	}
+	return nil
 }
 
 func (r *BookingRepository) GetLockSession(showID, seatID uuid.UUID) (string, error) {
@@ -359,10 +373,14 @@ func (r *BookingRepository) ReleaseUserSession(user_id, show_id uuid.UUID) error
 	if err != nil {
 		return err
 	}
+	hashKey := ShowSeatHashKey(show_id)
 
 	for _, seatID := range seatIDs {
 		lockKey := fmt.Sprintf("seat_lock:%s:%s", show_id.String(), seatID.String())
 		r.RDB.Del(ctx, lockKey)
+		if err := r.RDB.HSet(ctx, hashKey, seatID.String(), "available").Err(); err != nil {
+			fmt.Printf("warning: failed to update seat hash for show %s seat %s: %v\n", show_id, seatID, err)
+		}
 	}
 	sessionKey := fmt.Sprintf("session_seats:%s", session.ID.String())
 	r.RDB.Del(ctx, sessionKey)
@@ -418,4 +436,15 @@ func (r *BookingRepository) MarkPaymentRefundRequired(paymentID uuid.UUID) error
 	return r.DB.Model(&models.Payment{}).
 		Where("id = ?", paymentID).
 		Update("status", models.PaymentRefundRequired).Error
+}
+
+func (r *BookingRepository) GetShowSeatsHash(showID uuid.UUID) (map[string]string, error) {
+	ctx := context.Background()
+	hashKey := ShowSeatHashKey(showID)
+
+	values, err := r.RDB.HGetAll(ctx, hashKey).Result()
+	if err != nil {
+		return nil, err
+	}
+	return values, nil // empty map if hash doesn't exist yet — not an error
 }

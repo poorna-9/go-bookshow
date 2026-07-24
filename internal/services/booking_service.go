@@ -3,6 +3,7 @@ package services
 import (
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -114,6 +115,11 @@ func (s *BookingService) GetReservedSlots(userID *uuid.UUID, showID uuid.UUID) (
 		return nil, err
 	}
 
+	lockedSeats, err := s.Repo.GetShowSeatsHash(showID)
+	if err != nil {
+		return nil, err
+	}
+
 	result := &ReservedSlotsResult{Seats: []SeatStatus{}}
 
 	var userSessionID *uuid.UUID
@@ -130,19 +136,15 @@ func (s *BookingService) GetReservedSlots(userID *uuid.UUID, showID uuid.UUID) (
 
 		if !seat.Available {
 			status = "booked"
-		} else {
-			lockedBySession, err := s.Repo.GetLockSession(showID, seat.SeatID)
-			if err != nil {
-				return nil, err
-			}
-			if lockedBySession != "" {
-				if userSessionID != nil && lockedBySession == userSessionID.String() {
-					status = "yours"
-				} else {
-					status = "taken"
-				}
+		} else if hashVal, ok := lockedSeats[seat.SeatID.String()]; ok && strings.HasPrefix(hashVal, "taken:") {
+			lockedBySession := strings.TrimPrefix(hashVal, "taken:")
+			if userSessionID != nil && lockedBySession == userSessionID.String() {
+				status = "yours"
+			} else {
+				status = "taken"
 			}
 		}
+		// if hashVal == "available" or key absent, status stays "available"
 
 		result.Seats = append(result.Seats, SeatStatus{
 			SeatID:     seat.SeatID,
