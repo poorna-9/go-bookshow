@@ -3,9 +3,9 @@ services:
     image: postgres:16-alpine
     container_name: bookmyshow-postgres
     environment:
-      POSTGRES_USER: bookmyshow
-      POSTGRES_PASSWORD: bookmyshow
-      POSTGRES_DB: bookmyshow
+      POSTGRES_USER: goshow
+      POSTGRES_PASSWORD: goshow
+      POSTGRES_DB: goshow
     ports:
       - "5432:5432"
     volumes:
@@ -24,29 +24,29 @@ services:
     build: .
     container_name: bookmyshow-app
     ports:
-      - "8000:8000" 
+      - "8080:8080"
     env_file:
-      - .env         
+      - .env
     environment:
       DB_HOST: postgres
-      DB_PORT: "5432"
-      DB_NAME: bookmyshow
-      DB_USER: bookmyshow
-      DB_PASS: bookmyshow
-      REDIS_URL: redis://redis:6379/0
-      REDIS_CACHE_URL: redis://redis:6379/1
+      REDIS_ADDR: redis:6379
     depends_on:
       - postgres
       - redis
+    volumes:
+      - ./web:/app/web
 
   nginx:
     image: nginx:1.27-alpine
     container_name: bookmyshow-nginx
+
     ports:
       - "80:80"
+
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
-      - ./web:/app/web:ro 
+      - ./web:/app/web:ro
+
     depends_on:
       - app
 

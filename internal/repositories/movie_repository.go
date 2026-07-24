@@ -45,14 +45,13 @@ func (r *MovieRepository) FindById(id string) ([]models.Movie, error) {
 
 func (r *MovieRepository) FindByCity(city string) ([]models.Movie, error) {
 	var movies []models.Movie
-	err := r.db.Distinct().
+	err := r.db.Debug().Distinct().
 		Joins("JOIN shows on shows.movie_id = movies.id").
 		Joins("JOIN screens on screens.id = shows.screen_id").
 		Joins("JOIN theatres on theatres.id = screens.theatre_id").
-		Where("theatres.city = ?", city).
+		Where("theatres.city ILIKE ?", city).
 		Find(&movies).Error
 	return movies, err
-
 }
 
 func (r *MovieRepository) UpdatePosterURL(id uuid.UUID, url string) error {

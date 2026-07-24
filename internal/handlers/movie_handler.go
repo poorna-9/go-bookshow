@@ -1,7 +1,9 @@
 package handlers
 
 import (
+	"log"
 	"net/http"
+	"os"
 	"path/filepath"
 
 	"github.com/gin-gonic/gin"
@@ -79,16 +81,31 @@ func (h *MovieHandler) UploadPoster(c *gin.Context) {
 	filename := id.String() + filepath.Ext(file.Filename)
 	savePath := filepath.Join("web", "images", "posters", filename)
 
-	if err := c.SaveUploadedFile(file, savePath); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to save poster"})
-		return
-	}
+	log.Println("Saving poster to:", savePath)
 
-	url := "/images/posters/" + filename
-	if err := h.Service.UpdatePosterURL(id, url); err != nil {
+	if err := os.MkdirAll(filepath.Dir(savePath), 0755); err != nil {
+		log.Println("mkdir failed:", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
+
+	if err := c.SaveUploadedFile(file, savePath); err != nil {
+		log.Println("save failed:", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	log.Println("Poster saved successfully")
+
+	url := "/images/posters/" + filename
+
+	if err := h.Service.UpdatePosterURL(id, url); err != nil {
+		log.Println("DB update failed:", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	log.Println("DB updated")
 
 	c.JSON(http.StatusOK, gin.H{"poster_url": url})
 }

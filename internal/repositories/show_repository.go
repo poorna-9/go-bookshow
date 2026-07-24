@@ -74,7 +74,7 @@ func (r *ShowRepository) FindByMovieAndCity(movieid string, city string, date st
 		`).
 		Joins("JOIN screens ON screens.id = shows.screen_id").
 		Joins("JOIN theatres ON theatres.id = screens.theatre_id").
-		Where("shows.movie_id = ? AND theatres.city = ? AND shows.date = ? AND shows.start_time > ?", movieid, city, date, time.Now()).
+		Where("shows.movie_id = ? AND theatres.city ILIKE ? AND shows.date = ? AND shows.start_time > ?", movieid, city, date, time.Now()).
 		Scan(&result).Error
 
 	return result, err

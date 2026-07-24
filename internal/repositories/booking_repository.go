@@ -5,6 +5,7 @@ import (
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"time"
@@ -198,7 +199,15 @@ func (r *BookingRepository) BlockSeatsAndSnapshotTx(session_id uuid.UUID, show_i
 		if err != nil {
 			return err
 		}
-		newerr := tx.Model(&models.BookingSession{}).Where("id = ?", session_id).Update("session_seats", seat_ids).Error
+
+		seatIDsJSON, err := json.Marshal(seat_ids)
+		if err != nil {
+			return err
+		}
+
+		newerr := tx.Model(&models.BookingSession{}).
+			Where("id = ?", session_id).
+			Update("session_seats", gorm.Expr("?::jsonb", string(seatIDsJSON))).Error
 		if newerr != nil {
 			return newerr
 		}
@@ -402,7 +411,7 @@ func (r *BookingRepository) GetBookingByID(id uuid.UUID) (*models.Booking, error
 
 func (r *BookingRepository) FindStaleSessions(older_than time.Time) ([]models.BookingSession, error) {
 	var session []models.BookingSession
-	err := r.DB.Where("expired = ? AND sucess = ? AND created_at < ?", false, false, older_than).Find(&session).Error
+	err := r.DB.Where("expired = ? AND success = ? AND created_at < ?", false, false, older_than).Find(&session).Error
 	return session, err
 }
 
