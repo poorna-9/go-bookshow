@@ -39,7 +39,7 @@ func Load() *Config {
 		log.Println("no .env file found, relying on environment variables")
 	}
 	return &Config{
-		AppPort:               getEnv("APP_PORT", "8080"),
+		AppPort:               getEnv("PORT", getEnv("APP_PORT", "8080")),
 		DBHost:                getEnv("DB_HOST", "localhost"),
 		DBPort:                getEnv("DB_PORT", "5432"),
 		DBUser:                getEnv("DB_USER", "goshow"),
