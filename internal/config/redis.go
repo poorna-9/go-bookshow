@@ -2,19 +2,27 @@ package config
 
 import (
 	"context"
-	"strconv"
 
 	"github.com/redis/go-redis/v9"
 )
 
 func NewRedisClient(cfg *Config) *redis.Client {
-	db, _ := strconv.Atoi(cfg.RedisDB)
+	var client *redis.Client
 
-	client := redis.NewClient(&redis.Options{
-		Addr:     cfg.RedisAddr,
-		Password: cfg.RedisPassword,
-		DB:       db,
-	})
+	if cfg.RedisURL != "" {
+		opts, err := redis.ParseURL(cfg.RedisURL)
+		if err != nil {
+			panic(err)
+		}
+
+		client = redis.NewClient(opts)
+	} else {
+		client = redis.NewClient(&redis.Options{
+			Addr:     cfg.RedisAddr,
+			Password: cfg.RedisPassword,
+			DB:       0,
+		})
+	}
 
 	_, err := client.Ping(context.Background()).Result()
 	if err != nil {

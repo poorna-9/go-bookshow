@@ -15,9 +15,12 @@ type Config struct {
 	DBUser                string
 	DBPassword            string
 	DBName                string
+
+	RedisURL              string
 	RedisAddr             string
 	RedisPassword         string
 	RedisDB               string
+
 	RazorpayKeyID         string
 	RazorpayKeySecret     string
 	RazorpayWebhookSecret string
@@ -53,6 +56,7 @@ func Load() *Config {
 		RazorpayWebhookSecret: getEnv("RAZORPAY_WEBHOOK_SECRET", ""),
 		JWTSecret:             getEnv("JWTSECRET", ""),
 		AdminSignupCode:       getEnv("AdminSignupCode", ""),
+		RedisURL:              getEnv("REDIS_URL", ""),
 	}
 
 }
